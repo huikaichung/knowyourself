@@ -42,8 +42,17 @@ function App() {
   return (
     <div className="app">
       <header>
-        <h1>🥊 算命擂台</h1>
+        <h1>🔮 算命擂台</h1>
         <p className="subtitle">四大流派命理大師同台較勁，看誰能算準你的命</p>
+        
+        {stage === 'form' && (
+          <div className="masters-preview">
+            <span className="master-tag">🌟 西洋占星</span>
+            <span className="master-tag">🎴 塔羅牌</span>
+            <span className="master-tag">🏯 紫微斗數</span>
+            <span className="master-tag">📿 八字命理</span>
+          </div>
+        )}
       </header>
 
       <main>

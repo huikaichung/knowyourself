@@ -1,6 +1,7 @@
 import type { FortuneRequest, FortuneResponse, MasterBrief } from '../types/fortune';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+// 優先使用環境變數，否則使用後端 Cloud Run URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://selfkit-backend-22akuoiitq-an.a.run.app/api/v1';
 
 export async function consultFortune(request: FortuneRequest): Promise<FortuneResponse> {
   const response = await fetch(`${API_URL}/fortune/consult`, {
