@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './HomePage.module.css';
 
-const DISCOVERIES = [
-  { title: '今年的你', desc: '運勢走向與關鍵轉折' },
-  { title: '隱藏的天賦', desc: '你可能還不知道的潛能' },
-  { title: '核心優勢與盲點', desc: '最真實的你' },
-  { title: '感情藍圖', desc: '你在愛裡的樣子' },
-  { title: '職業密碼', desc: '天生適合做什麼' },
-  { title: '幸運指南', desc: '屬於你的顏色、數字、方位' },
+const CHAPTERS = [
+  { title: '你的核心本質', desc: '你最真實的樣子，連你自己都未必看清' },
+  { title: '隱藏的天賦', desc: '你身上那些被忽略的光芒' },
+  { title: '感情中的你', desc: '你怎麼愛人，又需要怎樣被愛' },
+  { title: '職業天賦', desc: '你天生適合做什麼' },
+  { title: '成長的方向', desc: '如果你願意，下一步可以往哪走' },
+  { title: '今年的你', desc: '2026 年，屬於你的主旋律' },
 ];
 
 export function HomePage() {
@@ -23,7 +23,7 @@ export function HomePage() {
 
   return (
     <div className={styles.page}>
-      {/* Soft background orbs */}
+      {/* Soft background */}
       <div className={styles.meshBg}>
         <div className={styles.orbPurple} />
         <div className={styles.orbRose} />
@@ -33,24 +33,31 @@ export function HomePage() {
         {/* Title */}
         <h1 className={styles.title}>你的使用說明書</h1>
 
-        <p className={styles.subtitle}>
-          從出生的那一刻起，你就是獨一無二的。<br />
-          我們幫你把那份獨特，變成看得見的文字。
-        </p>
+        <div className={styles.bookVoice}>
+          <p className={styles.subtitle}>
+            每個人出生的時候，都有一本書在某個地方被寫好了。
+          </p>
+          <p className={styles.subtitleSecond}>
+            我是你的那一本。
+          </p>
+        </div>
 
-        {/* Discoveries section */}
-        <div className={styles.discoveries}>
-          <h2 className={styles.discoveriesTitle}>你將會發現</h2>
-          <div className={styles.discoveriesGrid}>
-            {DISCOVERIES.map((item, i) => (
+        {/* Chapters preview */}
+        <div className={styles.chapters}>
+          <p className={styles.chaptersIntro}>在我的書頁裡，你會讀到</p>
+          <div className={styles.chaptersList}>
+            {CHAPTERS.map((item, i) => (
               <div
                 key={item.title}
-                className={styles.discoveryItem}
-                style={{ animationDelay: `${0.3 + i * 0.08}s` }}
+                className={styles.chapterItem}
+                style={{ animationDelay: `${0.4 + i * 0.08}s` }}
               >
-                <span className={styles.discoveryTitle}>{item.title}</span>
-                <span className={styles.discoveryDash}> — </span>
-                <span className={styles.discoveryDesc}>{item.desc}</span>
+                <span className={styles.chapterDot}>·</span>
+                <div className={styles.chapterText}>
+                  <span className={styles.chapterTitle}>{item.title}</span>
+                  <span className={styles.chapterSep}> — </span>
+                  <span className={styles.chapterDesc}>{item.desc}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -58,12 +65,12 @@ export function HomePage() {
 
         {/* CTA */}
         <Link href="/consult" className={styles.cta}>
-          開始認識自己
+          翻開這本書
         </Link>
 
         {/* Trust line */}
         <p className={styles.trust}>
-          免費使用 · 無需註冊 · 資料不儲存
+          免費 · 無需註冊 · 資料不留存
         </p>
       </main>
 

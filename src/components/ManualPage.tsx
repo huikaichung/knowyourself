@@ -51,7 +51,7 @@ function SectionBlock({ heading, content, subPoints, id }: {
         <div className={styles.subPoints}>
           {subPoints.map((point, i) => (
             <div key={i} className={styles.subPoint}>
-              <span className={styles.subPointDash}>--</span>
+              <span className={styles.subPointDash}>·</span>
               <span>{point}</span>
             </div>
           ))}
@@ -95,7 +95,7 @@ export function ManualPage({ manualId }: Props) {
       <div className={styles.page}>
         <div className={styles.loading}>
           <div className={styles.loadingOrb} />
-          <p>載入你的說明書...</p>
+          <p className={styles.loadingText}>正在打開你的書...</p>
         </div>
       </div>
     );
@@ -105,17 +105,16 @@ export function ManualPage({ manualId }: Props) {
     return (
       <div className={styles.page}>
         <div className={styles.errorState}>
-          <h2>找不到說明書</h2>
-          <p className={styles.errorMsg}>{error || '可能已過期，請重新生成'}</p>
+          <h2>找不到這本書</h2>
+          <p className={styles.errorMsg}>{error || '可能已經闔上了，再寫一本吧'}</p>
           <Link href="/consult" className="btn btn-primary">
-            重新生成
+            重新書寫
           </Link>
         </div>
       </div>
     );
   }
 
-  // Filter out the "lucky" section from sections list — we render lucky separately
   const contentSections = manual.sections.filter(s => s.id !== 'lucky');
 
   return (
@@ -142,6 +141,13 @@ export function ManualPage({ manualId }: Props) {
       </header>
 
       <main className={styles.main}>
+        {/* Book intro */}
+        <div className={styles.bookIntro}>
+          <p className={styles.bookIntroText}>
+            這是我為你寫的。翻到任何一頁，都是關於你的。
+          </p>
+        </div>
+
         {/* 1. HERO — Profile */}
         <div className={styles.profileHero}>
           <h1 className={styles.profileLabel}>{manual.profile.label}</h1>
@@ -150,6 +156,7 @@ export function ManualPage({ manualId }: Props) {
 
         {/* 2. SPECTRUM RADAR CHART */}
         <div className={styles.spectrumSection}>
+          <p className={styles.spectrumIntro}>你的性格光譜</p>
           <RadarChart spectrum={manual.spectrum} />
         </div>
 
@@ -168,7 +175,7 @@ export function ManualPage({ manualId }: Props) {
 
         {/* 4. LUCKY GUIDE */}
         <div className={styles.luckySection}>
-          <h2 className={styles.sectionHeading}>你的幸運指南</h2>
+          <h2 className={styles.sectionHeading}>屬於你的幸運符號</h2>
           <div className={styles.luckyGrid}>
             <div className={styles.luckyItem}>
               <span className={styles.luckyLabel}>顏色</span>
@@ -205,7 +212,7 @@ export function ManualPage({ manualId }: Props) {
             className={styles.deepDataTrigger}
             onClick={() => setDeepDataOpen(!deepDataOpen)}
           >
-            <span>想深入了解？</span>
+            <span>底層資料</span>
             <svg
               width="16"
               height="16"
@@ -233,10 +240,10 @@ export function ManualPage({ manualId }: Props) {
         {/* 6. ACTIONS */}
         <div className={styles.actions}>
           <button className="btn btn-ghost" onClick={handleShare}>
-            分享給朋友
+            把這本書分享給朋友
           </button>
           <Link href="/consult" className="btn btn-ghost">
-            重新生成
+            再寫一本
           </Link>
         </div>
 
@@ -277,11 +284,9 @@ function getLuckyColorHex(colorName: string): string {
     '米色': '#d6cfc4',
     '咖啡': '#78350f',
   };
-  // Try exact match
   if (map[colorName]) return map[colorName];
-  // Try partial match
   for (const [key, val] of Object.entries(map)) {
     if (colorName.includes(key) || key.includes(colorName)) return val;
   }
-  return '#7f5af0'; // default accent
+  return '#7f5af0';
 }
