@@ -2,16 +2,25 @@
   min-height: 100vh;
   position: relative;
   overflow: hidden;
+  background: var(--bg-primary);
 }
 
-.bgOrb {
+/* Background mesh */
+.meshBg {
   position: fixed;
-  width: 500px; height: 500px;
-  top: -100px; right: -150px;
-  background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(80px);
+  inset: 0;
   pointer-events: none;
+  z-index: 0;
+}
+.orbPurple {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  top: -15%;
+  right: -10%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(127, 90, 240, 0.08) 0%, transparent 65%);
+  filter: blur(80px);
 }
 
 /* Header */
@@ -23,31 +32,43 @@
 .back {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  color: var(--color-text-secondary);
+  gap: var(--space-2);
+  color: var(--text-body);
   font-size: 0.85rem;
+  font-weight: 500;
   transition: color 0.2s;
+  text-decoration: none;
 }
-.back:hover { color: var(--color-text); }
+.back:hover { color: var(--text-headline); }
 
 /* Main */
 .main {
   position: relative;
   z-index: 10;
-  max-width: 440px;
+  max-width: 480px;
   margin: 0 auto;
-  padding: 0 var(--space-6) var(--space-12);
+  padding: 0 var(--space-6) var(--space-16);
+}
+
+/* Glassmorphic card */
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-10) var(--space-8);
+  backdrop-filter: blur(20px);
+  animation: fadeInUp 0.6s ease;
 }
 
 .formHeader {
   margin-bottom: var(--space-8);
 }
 .formHeader h1 {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   margin-bottom: var(--space-2);
 }
 .formHeader p {
-  color: var(--color-text-secondary);
+  color: var(--text-body);
   font-size: 0.9rem;
 }
 
@@ -75,12 +96,13 @@
 .field label {
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--text-body);
+  font-family: 'Space Grotesk', 'Noto Sans TC', sans-serif;
 }
-.required { color: var(--color-accent); }
+.required { color: var(--accent-primary); }
 .hint {
   font-size: 0.78rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-muted);
 }
 
 /* Gender buttons */
@@ -91,22 +113,24 @@
 .genderBtn {
   flex: 1;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  color: var(--text-body);
   font-size: 0.9rem;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
 }
 .genderBtn:hover {
-  border-color: var(--color-border-hover);
+  border-color: var(--border-hover);
+  background: var(--glass-bg-hover);
 }
 .genderActive {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
+  color: var(--text-headline);
+  box-shadow: 0 0 16px rgba(127, 90, 240, 0.15);
 }
 
 /* Perspective chips */
@@ -119,23 +143,24 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  padding: 7px 15px;
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
+  color: var(--text-body);
   font-size: 0.85rem;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
 }
 .perspectiveChip:hover {
-  border-color: var(--color-border-hover);
+  border-color: var(--border-hover);
+  background: var(--glass-bg-hover);
 }
 .perspectiveActive {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  color: var(--color-text);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
+  color: var(--text-headline);
 }
 
 /* Submit */
@@ -149,46 +174,87 @@
 .privacy {
   text-align: center;
   font-size: 0.78rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-muted);
 }
 
-/* Loading screen */
+/* ===== Loading Screen ===== */
 .loadingScreen {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-6);
+  gap: var(--space-8);
   position: relative;
+  z-index: 2;
 }
 
-.loadingOrb {
+/* Orbital animation */
+.orbitalContainer {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.orbitalCenter {
   position: absolute;
-  width: 300px; height: 300px;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%);
-  filter: blur(60px);
-  animation: pulse-soft 3s infinite;
+  background: var(--accent-primary);
+  box-shadow: 0 0 16px var(--accent-primary-glow);
 }
-
-.spinner {
-  width: 40px; height: 40px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-accent);
+.orbiter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  z-index: 1;
+  animation: orbit linear infinite;
+}
+.orbiter1 {
+  background: var(--accent-primary);
+  animation-duration: 2s;
+  box-shadow: 0 0 8px var(--accent-primary-glow);
+}
+.orbiter2 {
+  background: var(--accent-secondary);
+  animation-duration: 3s;
+  animation-delay: -0.5s;
+  box-shadow: 0 0 8px rgba(44, 182, 125, 0.3);
+}
+.orbiter3 {
+  background: #60A5FA;
+  animation-duration: 4s;
+  animation-delay: -1s;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
 }
 
 .loadingText {
   font-size: 1rem;
-  color: var(--color-text);
-  z-index: 1;
+  font-weight: 500;
+  color: var(--text-headline);
   animation: fadeIn 0.4s ease;
 }
 .loadingHint {
   font-size: 0.8rem;
-  color: var(--color-text-tertiary);
-  z-index: 1;
+  color: var(--text-muted);
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+  .card {
+    padding: var(--space-8) var(--space-5);
+    border-radius: var(--radius-xl);
+  }
+  .formHeader h1 {
+    font-size: 1.5rem;
+  }
+  .main {
+    padding: 0 var(--space-4) var(--space-12);
+  }
 }

@@ -12,6 +12,16 @@ const PERSPECTIVES = [
   { id: 'humandesign', emoji: '🔺', name: '人類圖', color: '#34D399' },
 ];
 
+// Generate deterministic star positions (SSR-safe, no Math.random)
+const STARS = Array.from({ length: 30 }, (_, i) => ({
+  id: i,
+  left: `${((i * 37 + 13) % 97)}%`,
+  top: `${((i * 53 + 7) % 91)}%`,
+  size: i % 3 === 0 ? 3 : 2,
+  delay: `${(i * 0.47) % 5}s`,
+  duration: `${3 + (i % 4)}s`,
+}));
+
 export function HomePage() {
   const [loaded, setLoaded] = useState(false);
 
@@ -22,10 +32,30 @@ export function HomePage() {
 
   return (
     <div className={styles.page}>
-      {/* Ambient background */}
-      <div className={styles.bgOrb1} />
-      <div className={styles.bgOrb2} />
-      <div className={styles.bgOrb3} />
+      {/* Gradient mesh background */}
+      <div className={styles.meshBg}>
+        <div className={styles.orbPurple} />
+        <div className={styles.orbBlue} />
+        <div className={styles.orbGreen} />
+      </div>
+
+      {/* Star particles */}
+      <div className={styles.stars} aria-hidden="true">
+        {STARS.map(star => (
+          <span
+            key={star.id}
+            className={styles.star}
+            style={{
+              left: star.left,
+              top: star.top,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              animationDelay: star.delay,
+              animationDuration: star.duration,
+            }}
+          />
+        ))}
+      </div>
 
       <main className={`${styles.hero} ${loaded ? styles.visible : ''}`}>
         {/* Badge */}
@@ -34,16 +64,17 @@ export function HomePage() {
           結合命理 × 心理學的自我探索工具
         </div>
 
-        {/* Title */}
+        {/* Title with gradient text */}
         <h1 className={styles.title}>
-          你的<span className={styles.titleAccent}>使用說明書</span>
+          你的
+          <span className={styles.titleGradient}>使用說明書</span>
         </h1>
 
         <p className={styles.subtitle}>
           輸入出生資訊，從五大視角生成專屬於你的深度人格分析
         </p>
 
-        {/* Perspective pills */}
+        {/* Perspective pills — glassmorphic */}
         <div className={styles.perspectives}>
           {PERSPECTIVES.map((p, i) => (
             <div
@@ -51,7 +82,7 @@ export function HomePage() {
               className={styles.pill}
               style={{
                 '--pill-color': p.color,
-                animationDelay: `${i * 0.08}s`,
+                animationDelay: `${0.3 + i * 0.1}s`,
               } as React.CSSProperties}
             >
               <span>{p.emoji}</span>
@@ -61,14 +92,14 @@ export function HomePage() {
         </div>
 
         {/* CTA */}
-        <Link href="/consult" className={`btn btn-primary ${styles.cta}`}>
-          開始探索自己
+        <Link href="/consult" className={styles.cta}>
+          <span className={styles.ctaText}>開始探索自己</span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </Link>
 
-        {/* Social proof / trust */}
+        {/* Trust line */}
         <p className={styles.trust}>
           ✦ 免費使用 · 無需註冊 · 資料不儲存
         </p>

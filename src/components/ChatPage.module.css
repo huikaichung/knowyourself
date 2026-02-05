@@ -1,0 +1,95 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* Background mesh */
+.meshBg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.orbPurple {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(127, 90, 240, 0.06) 0%, transparent 65%);
+  filter: blur(80px);
+}
+
+/* Stars */
+.stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  animation: twinkle ease-in-out infinite;
+}
+
+/* Content */
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.iconWrapper {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(12px);
+}
+.icon {
+  font-size: 2rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-family: 'Space Grotesk', 'Noto Sans TC', sans-serif;
+  color: var(--text-headline);
+}
+
+.badge {
+  display: inline-flex;
+  padding: 4px 14px;
+  background: var(--accent-primary-soft);
+  border: 1px solid rgba(127, 90, 240, 0.2);
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  letter-spacing: 0.04em;
+}
+
+.description {
+  color: var(--text-body);
+  max-width: 320px;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}

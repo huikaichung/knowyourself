@@ -83,8 +83,11 @@ export function ManualPage({ manualId }: Props) {
 
   return (
     <div className={styles.page}>
-      <div className={styles.bgOrb1} />
-      <div className={styles.bgOrb2} />
+      {/* Background */}
+      <div className={styles.meshBg}>
+        <div className={styles.orbPurple} />
+        <div className={styles.orbGreen} />
+      </div>
 
       {/* Header */}
       <header className={styles.header}>
@@ -112,13 +115,15 @@ export function ManualPage({ manualId }: Props) {
       </header>
 
       <main className={styles.main}>
-        {/* Profile card */}
-        <div className={styles.profileCard}>
-          <div className={styles.profileLabel}>{manual.profile.core_label}</div>
-          <p className={styles.profileLiner}>「{manual.profile.one_liner}」</p>
+        {/* Profile card with gradient border */}
+        <div className={styles.profileCardWrapper}>
+          <div className={styles.profileCard}>
+            <div className={styles.profileLabel}>{manual.profile.core_label}</div>
+            <p className={styles.profileLiner}>「{manual.profile.one_liner}」</p>
+          </div>
         </div>
 
-        {/* Chapter tabs */}
+        {/* Chapter tabs — horizontal scroll with active indicator line */}
         <nav className={styles.tabs}>
           {chapters.map(ch => (
             <button
@@ -128,6 +133,7 @@ export function ManualPage({ manualId }: Props) {
             >
               <span className={styles.tabEmoji}>{CHAPTER_EMOJIS[ch.id] || '📖'}</span>
               <span className={styles.tabLabel}>{ch.title}</span>
+              {activeChapter === ch.id && <span className={styles.tabIndicator} />}
             </button>
           ))}
         </nav>
