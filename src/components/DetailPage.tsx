@@ -17,8 +17,19 @@ const SYSTEMS: { key: DetailSystem; label: string }[] = [
   { key: 'meihua', label: '梅花易數' },
 ];
 
+const LOADING_HINTS: Record<string, string> = {
+  western: '推算行星位置與相位...',
+  bazi: '排列四柱八字與十神...',
+  ziwei: '安星佈局十二宮...',
+  human_design: '計算能量中心與通道...',
+  meihua: '起卦分析體用關係...',
+};
+
 export function DetailPage({ manualId }: Props) {
   const [results, setResults] = useState<Record<string, { data?: DetailResponse; loading: boolean; error?: string }>>({});
+
+  const completed = Object.values(results).filter(r => !r.loading).length;
+  const total = SYSTEMS.length;
 
   useEffect(() => {
     // Init all as loading
@@ -54,7 +65,15 @@ export function DetailPage({ manualId }: Props) {
       <main className={styles.main}>
         <div className={styles.titleBlock}>
           <h1 className={styles.title}>詳細解讀</h1>
-          <p className={styles.subtitle}>五大系統的完整命盤分析</p>
+          <p className={styles.subtitle}>
+            {completed < total 
+              ? `正在深度解讀中 · ${completed}/${total} 完成`
+              : '五大系統的完整命盤分析'
+            }
+          </p>
+          {completed === 0 && (
+            <p className={styles.loadingHint}>每個系統約需 5-10 秒，請稍候</p>
+          )}
         </div>
 
         {SYSTEMS.map(({ key, label }) => {
@@ -66,8 +85,21 @@ export function DetailPage({ manualId }: Props) {
               <section key={key} className={styles.card}>
                 <h2 className={styles.cardTitle}>{label}</h2>
                 <div className={styles.cardLoading}>
-                  <div className={styles.loadingDot} />
-                  <span>正在解讀...</span>
+                  <div className={styles.loadingHeader}>
+                    <div className={styles.loadingDot} />
+                    <span>{LOADING_HINTS[key] || '正在解讀...'}</span>
+                  </div>
+                  <div>
+                    <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
+                    <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
+                    <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
+                  </div>
+                  <div>
+                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                  </div>
                 </div>
               </section>
             );
@@ -86,7 +118,7 @@ export function DetailPage({ manualId }: Props) {
           if (!d) return null;
 
           return (
-            <section key={key} className={styles.card}>
+            <section key={key} className={`${styles.card} ${styles.cardReady}`}>
               <h2 className={styles.cardTitle}>{label}</h2>
               {key === 'western' && <WesternRender data={d} />}
               {key === 'bazi' && <BaziRender data={d} />}

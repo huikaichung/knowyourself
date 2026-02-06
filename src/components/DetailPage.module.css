@@ -11,13 +11,38 @@
 .titleBlock { padding: var(--space-10) 0 var(--space-6); text-align: center; }
 .title { font-size: 1.6rem; font-weight: 700; color: var(--text-headline); margin-bottom: var(--space-2); }
 .subtitle { font-size: 0.9rem; color: var(--text-muted); }
+.titleBlock .loadingHint { font-size: 0.78rem; color: var(--text-muted); opacity: 0.6; margin-top: var(--space-2); }
 
 /* Cards */
 .card { background: var(--glass-bg); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-8) var(--space-6); margin-bottom: var(--space-6); animation: fadeInUp 0.5s ease both; }
 .cardTitle { font-size: 1.25rem; font-weight: 700; color: var(--text-headline); margin-bottom: var(--space-6); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
-.cardLoading { display: flex; align-items: center; gap: var(--space-3); color: var(--text-muted); padding: var(--space-8) 0; justify-content: center; }
-.loadingDot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent-primary); opacity: 0.5; animation: pulse-soft 2s ease-in-out infinite; }
+.cardLoading { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4) 0; }
+.loadingHeader { display: flex; align-items: center; gap: var(--space-3); color: var(--text-muted); font-size: 0.85rem; }
+.loadingDot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-primary); animation: pulse-soft 1.5s ease-in-out infinite; }
+.loadingHint { font-size: 0.78rem; color: var(--text-muted); opacity: 0.7; }
+
+/* Skeleton loading */
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-sm); }
+.skeletonLine { height: 14px; margin-bottom: var(--space-2); }
+.skeletonLine:nth-child(1) { width: 85%; }
+.skeletonLine:nth-child(2) { width: 72%; }
+.skeletonLine:nth-child(3) { width: 90%; }
+.skeletonLine:nth-child(4) { width: 65%; }
+.skeletonPill { display: inline-block; height: 32px; width: 100px; margin-right: var(--space-2); margin-bottom: var(--space-2); border-radius: var(--radius-md); }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .cardError { color: #F87171; font-size: 0.88rem; padding: var(--space-4) 0; }
+
+/* Success state animation */
+.cardReady { animation: cardSlideIn 0.4s ease-out both; }
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* System content */
 .systemContent { display: flex; flex-direction: column; gap: var(--space-6); }
