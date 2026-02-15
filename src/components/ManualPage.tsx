@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getManual, saveManual, type UserManual } from '@/lib/api';
 import { RadarChart } from './RadarChart';
+import { useAuth } from './AuthContext';
+import { LoginModal } from './LoginModal';
 import styles from './ManualPage.module.css';
 
 interface Props {
@@ -62,23 +64,34 @@ function SectionBlock({ heading, content, subPoints, id }: {
   );
 }
 
-// Generate or get anonymous user ID
-function getOrCreateUserId(): string {
-  if (typeof window === 'undefined') return '';
-  let userId = localStorage.getItem('knowyourself_user_id');
-  if (!userId) {
-    userId = 'anon_' + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('knowyourself_user_id', userId);
-  }
-  return userId;
-}
-
 export function ManualPage({ manualId }: Props) {
   const [manual, setManual] = useState<UserManual | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingSave, setPendingSave] = useState(false);
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+
+  // Handle pending save after login
+  useEffect(() => {
+    if (pendingSave && isAuthenticated && user) {
+      setPendingSave(false);
+      performSave(user.id);
+    }
+  }, [pendingSave, isAuthenticated, user]);
+
+  const performSave = async (userId: string) => {
+    setSaveStatus('saving');
+    try {
+      await saveManual(userId, manualId);
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -105,16 +118,16 @@ export function ManualPage({ manualId }: Props) {
 
   const handleSave = useCallback(async () => {
     if (saveStatus === 'saving' || saveStatus === 'saved') return;
-    setSaveStatus('saving');
-    try {
-      const userId = getOrCreateUserId();
-      await saveManual(userId, manualId);
-      setSaveStatus('saved');
-    } catch {
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 2000);
+    
+    // Require login to save
+    if (!isAuthenticated || !user) {
+      setPendingSave(true);
+      setShowLoginModal(true);
+      return;
     }
-  }, [manualId, saveStatus]);
+    
+    performSave(user.id);
+  }, [saveStatus, isAuthenticated, user]);
 
   if (isLoading) {
     return (
@@ -145,6 +158,19 @@ export function ManualPage({ manualId }: Props) {
 
   return (
     <div className={styles.page}>
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => {
+          setShowLoginModal(false);
+          setPendingSave(false);
+        }}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          // pendingSave + useEffect will handle the actual save
+        }}
+      />
+
       {/* Background */}
       <div className={styles.meshBg}>
         <div className={styles.orbPurple} />
