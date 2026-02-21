@@ -7,16 +7,16 @@ import Link from 'next/link';
 import styles from '../dashboard.module.css';
 
 export default function HumanDesignPage() {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!loading && !user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, loading, router]);
 
-  if (isLoading) {
+  if (loading) {
     return <div className={styles.loading}>載入中...</div>;
   }
 

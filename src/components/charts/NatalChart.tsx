@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Western Astrology Natal Chart SVG
- * 12 houses wheel with planet positions
+ * Western Astrology Natal Chart SVG - Interactive
+ * 12 houses wheel with clickable planet positions
  */
 
 interface Planet {
@@ -11,11 +11,14 @@ interface Planet {
   degree: string;
   house: number;
   retrograde?: boolean;
+  interpretation?: string;
 }
 
 interface Props {
   planets: Planet[];
-  ascendant?: { sign: string; degree: string };
+  ascendant?: { sign: string; degree?: string };
+  onPlanetClick?: (planet: Planet) => void;
+  onSignClick?: (sign: string) => void;
 }
 
 // Zodiac signs in order
@@ -37,6 +40,21 @@ const SIGN_SYMBOLS: Record<string, string> = {
   'Capricorn': '♑', '摩羯座': '♑',
   'Aquarius': '♒', '水瓶座': '♒',
   'Pisces': '♓', '雙魚座': '♓',
+};
+
+const SIGN_NAMES: Record<string, string> = {
+  'Aries': '牡羊座', '牡羊座': '牡羊座',
+  'Taurus': '金牛座', '金牛座': '金牛座',
+  'Gemini': '雙子座', '雙子座': '雙子座',
+  'Cancer': '巨蟹座', '巨蟹座': '巨蟹座',
+  'Leo': '獅子座', '獅子座': '獅子座',
+  'Virgo': '處女座', '處女座': '處女座',
+  'Libra': '天秤座', '天秤座': '天秤座',
+  'Scorpio': '天蠍座', '天蠍座': '天蠍座',
+  'Sagittarius': '射手座', '射手座': '射手座',
+  'Capricorn': '摩羯座', '摩羯座': '摩羯座',
+  'Aquarius': '水瓶座', '水瓶座': '水瓶座',
+  'Pisces': '雙魚座', '雙魚座': '雙魚座',
 };
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -101,7 +119,7 @@ function calculatePlanetAngle(planet: Planet, ascSign: string): number {
   return angle;
 }
 
-export function NatalChart({ planets, ascendant }: Props) {
+export function NatalChart({ planets, ascendant, onPlanetClick, onSignClick }: Props) {
   const size = 320;
   const cx = size / 2;
   const cy = size / 2;
@@ -123,7 +141,7 @@ export function NatalChart({ planets, ascendant }: Props) {
     return { x1, y1, x2, y2 };
   });
 
-  // Sign symbols positions
+  // Sign symbols positions with sign names for click handling
   const signPositions = Array.from({ length: 12 }, (_, i) => {
     const ascIdx = getSignIndex(ascSign);
     const signIdx = (ascIdx + i) % 12;
@@ -133,7 +151,8 @@ export function NatalChart({ planets, ascendant }: Props) {
     const signName = Object.keys(SIGN_SYMBOLS).find(k => 
       getSignIndex(k) === signIdx && SIGN_SYMBOLS[k]
     ) || SIGNS[signIdx];
-    return { x, y, symbol: SIGN_SYMBOLS[signName] || '?' };
+    const cnName = SIGN_NAMES[signName] || signName;
+    return { x, y, symbol: SIGN_SYMBOLS[signName] || '?', name: cnName };
   });
 
   // Planet positions
@@ -146,8 +165,20 @@ export function NatalChart({ planets, ascendant }: Props) {
     const y = cy + r * Math.sin(angle);
     const symbol = PLANET_SYMBOLS[planet.name] || planet.name[0];
     const color = PLANET_COLORS[planet.name] || '#7f5af0';
-    return { x, y, symbol, color, retrograde: planet.retrograde, name: planet.name };
+    return { x, y, symbol, color, retrograde: planet.retrograde, name: planet.name, planet };
   });
+
+  const handlePlanetClick = (planet: Planet) => {
+    if (onPlanetClick) {
+      onPlanetClick(planet);
+    }
+  };
+
+  const handleSignClick = (signName: string) => {
+    if (onSignClick) {
+      onSignClick(signName);
+    }
+  };
 
   return (
     <svg 
@@ -190,31 +221,62 @@ export function NatalChart({ planets, ascendant }: Props) {
       />
       <text x={cx - outerR + 5} y={cy - 5} fill="#7f5af0" fontSize="10" fontWeight="bold">ASC</text>
 
-      {/* Sign symbols */}
+      {/* Sign symbols - clickable */}
       {signPositions.map((pos, i) => (
-        <text
-          key={i}
-          x={pos.x}
-          y={pos.y}
-          fill="rgba(255,255,255,0.6)"
-          fontSize="14"
-          textAnchor="middle"
-          dominantBaseline="middle"
+        <g 
+          key={i} 
+          style={{ cursor: onSignClick ? 'pointer' : 'default' }}
+          onClick={() => handleSignClick(pos.name)}
         >
-          {pos.symbol}
-        </text>
-      ))}
-
-      {/* Planets */}
-      {planetPositions.map((pos, i) => (
-        <g key={i}>
           <circle
             cx={pos.x}
             cy={pos.y}
-            r="12"
+            r="14"
+            fill="transparent"
+          />
+          <text
+            x={pos.x}
+            y={pos.y}
+            fill="rgba(255,255,255,0.6)"
+            fontSize="14"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ 
+              transition: 'fill 0.2s',
+              pointerEvents: 'none',
+            }}
+          >
+            {pos.symbol}
+          </text>
+        </g>
+      ))}
+
+      {/* Planets - clickable */}
+      {planetPositions.map((pos, i) => (
+        <g 
+          key={i}
+          style={{ cursor: onPlanetClick ? 'pointer' : 'default' }}
+          onClick={() => handlePlanetClick(pos.planet)}
+        >
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r="14"
             fill="rgba(0,0,0,0.7)"
             stroke={pos.color}
             strokeWidth="1.5"
+            style={{ 
+              transition: 'all 0.2s',
+            }}
+          />
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r="14"
+            fill="transparent"
+            stroke="transparent"
+            strokeWidth="3"
+            className="planet-hitarea"
           />
           <text
             x={pos.x}
@@ -223,6 +285,7 @@ export function NatalChart({ planets, ascendant }: Props) {
             fontSize="12"
             textAnchor="middle"
             dominantBaseline="middle"
+            style={{ pointerEvents: 'none' }}
           >
             {pos.symbol}
           </text>
@@ -232,6 +295,7 @@ export function NatalChart({ planets, ascendant }: Props) {
               y={pos.y - 8}
               fill="#ff6b6b"
               fontSize="8"
+              style={{ pointerEvents: 'none' }}
             >
               R
             </text>
@@ -250,6 +314,30 @@ export function NatalChart({ planets, ascendant }: Props) {
       >
         本命盤
       </text>
+
+      {/* Hover hint */}
+      {(onPlanetClick || onSignClick) && (
+        <text
+          x={cx}
+          y={size - 8}
+          fill="rgba(255,255,255,0.3)"
+          fontSize="9"
+          textAnchor="middle"
+        >
+          點擊行星或星座查看詳情
+        </text>
+      )}
+
+      {/* Styles for hover effects */}
+      <style>{`
+        g:hover circle[stroke]:not(.planet-hitarea) {
+          stroke-width: 2.5;
+          filter: drop-shadow(0 0 4px currentColor);
+        }
+        g:hover text[fill="rgba(255,255,255,0.6)"] {
+          fill: rgba(255,255,255,0.9);
+        }
+      `}</style>
     </svg>
   );
 }

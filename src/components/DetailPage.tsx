@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { getManualDetail, type DetailSystem, type DetailResponse } from '@/lib/api';
 import { useAuth } from './AuthContext';
@@ -8,6 +8,8 @@ import { LoginModal } from './LoginModal';
 import { getAccessToken } from '@/lib/auth';
 import { NatalChart } from './charts/NatalChart';
 import { BodyGraph } from './charts/BodyGraph';
+import { ChartDetailDrawer, type ChartDetail } from './ChartDetailDrawer';
+import { PLANETS, SIGNS, HOUSES } from '@/data/astrology-explanations';
 import styles from './DetailPage.module.css';
 
 interface Props {
@@ -205,6 +207,7 @@ export function DetailPage({ manualId }: Props) {
 
 /* ========== RENDER HELPERS ========== */
 
+// Western Astrology Render Component (with interactive chart)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function WesternRender({ data }: { data: any }) {
   const asc = data.ascendant;
@@ -213,11 +216,95 @@ function WesternRender({ data }: { data: any }) {
   const aspects = data.aspects || [];
 
   return (
+    <WesternRenderInner 
+      asc={asc} 
+      mc={mc} 
+      planets={planets} 
+      aspects={aspects}
+      stelliums={data.stelliums}
+      chartPattern={data.chart_pattern}
+      dominantElement={data.dominant_element}
+      summary={data.summary}
+    />
+  );
+}
+
+// Inner component to use hooks properly
+function WesternRenderInner({ asc, mc, planets, aspects, stelliums, chartPattern, dominantElement, summary }: { 
+  asc: { sign: string; degree?: string } | undefined; 
+  mc: { sign: string; degree?: string } | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  planets: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  aspects: any[];
+  stelliums?: string;
+  chartPattern?: string;
+  dominantElement?: string;
+  summary?: string;
+}) {
+  const [selectedDetail, setSelectedDetail] = useState<ChartDetail | null>(null);
+
+  // Handle planet click - show detail drawer
+  const handlePlanetClick = useCallback((planet: { name: string; sign: string; degree: string; house: number; retrograde?: boolean; interpretation?: string }) => {
+    const planetKey = planet.name.toLowerCase().replace('太陽', 'sun').replace('月亮', 'moon')
+      .replace('水星', 'mercury').replace('金星', 'venus').replace('火星', 'mars')
+      .replace('木星', 'jupiter').replace('土星', 'saturn').replace('天王星', 'uranus')
+      .replace('海王星', 'neptune').replace('冥王星', 'pluto');
+    
+    const planetData = PLANETS[planetKey];
+    const signInterpretation = planetData?.signInterpretations?.[planet.sign] || '';
+    
+    setSelectedDetail({
+      type: 'planet',
+      id: planetKey,
+      title: `${planet.name} in ${planet.sign}`,
+      subtitle: `第${planet.house}宮 · ${planet.degree}${planet.retrograde ? ' (逆行)' : ''}`,
+      category: planetData?.category || '行星',
+      keywords: planetData?.keywords || [],
+      description: planetData?.description || '',
+      interpretation: signInterpretation || planet.interpretation || '',
+      advice: planet.retrograde ? '逆行期間適合回顧和反思相關主題，而非開始新事物。' : undefined,
+    });
+  }, []);
+
+  // Handle sign click - show detail drawer
+  const handleSignClick = useCallback((signName: string) => {
+    const signKey = signName.replace('座', '').toLowerCase()
+      .replace('牡羊', 'aries').replace('金牛', 'taurus').replace('雙子', 'gemini')
+      .replace('巨蟹', 'cancer').replace('獅子', 'leo').replace('處女', 'virgo')
+      .replace('天秤', 'libra').replace('天蠍', 'scorpio').replace('射手', 'sagittarius')
+      .replace('摩羯', 'capricorn').replace('水瓶', 'aquarius').replace('雙魚', 'pisces');
+    
+    const signData = SIGNS[signKey];
+    
+    setSelectedDetail({
+      type: 'sign',
+      id: signKey,
+      title: signData?.name || signName,
+      subtitle: `${signData?.element || ''} · ${signData?.modality || ''}`,
+      category: `守護星：${signData?.ruling || ''}`,
+      keywords: signData?.keywords || [],
+      description: signData?.description || '',
+    });
+  }, []);
+
+  return (
     <div className={styles.systemContent}>
-      {/* Natal Chart SVG */}
+      {/* Detail Drawer */}
+      <ChartDetailDrawer 
+        detail={selectedDetail} 
+        onClose={() => setSelectedDetail(null)} 
+      />
+
+      {/* Natal Chart SVG - Interactive */}
       {planets.length > 0 && (
         <div className={styles.chartContainer}>
-          <NatalChart planets={planets} ascendant={asc} />
+          <NatalChart 
+            planets={planets} 
+            ascendant={asc}
+            onPlanetClick={handlePlanetClick}
+            onSignClick={handleSignClick}
+          />
         </div>
       )}
 
@@ -281,10 +368,10 @@ function WesternRender({ data }: { data: any }) {
         ))}
       </div>
 
-      {data.stelliums && <Para label="群星聚集" text={data.stelliums} />}
-      {data.chart_pattern && <Para label="星盤格局" text={data.chart_pattern} />}
-      {data.dominant_element && <Para label="主導元素" text={data.dominant_element} />}
-      {data.summary && <Para label="總結" text={data.summary} />}
+      {stelliums && <Para label="群星聚集" text={stelliums} />}
+      {chartPattern && <Para label="星盤格局" text={chartPattern} />}
+      {dominantElement && <Para label="主導元素" text={dominantElement} />}
+      {summary && <Para label="總結" text={summary} />}
     </div>
   );
 }

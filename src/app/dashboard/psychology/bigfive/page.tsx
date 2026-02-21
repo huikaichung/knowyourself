@@ -76,7 +76,7 @@ const traitDescriptions: Record<string, { high: string; low: string }> = {
 };
 
 export default function BigFivePage() {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -84,12 +84,12 @@ export default function BigFivePage() {
   const [results, setResults] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!loading && !user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, loading, router]);
 
-  if (isLoading) {
+  if (loading) {
     return <div className={styles.loading}>載入中...</div>;
   }
 

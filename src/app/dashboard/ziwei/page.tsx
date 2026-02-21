@@ -7,18 +7,18 @@ import Link from 'next/link';
 import styles from '../dashboard.module.css';
 
 export default function ZiweiPage() {
-  const { user, isLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       router.push('/');
     }
-    setLoading(false);
-  }, [user, isLoading, router]);
+    setDataLoading(false);
+  }, [user, authLoading, router]);
 
-  if (isLoading || loading) {
+  if (authLoading || dataLoading) {
     return <div className={styles.loading}>載入中...</div>;
   }
 

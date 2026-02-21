@@ -27,24 +27,24 @@ interface WesternData {
 }
 
 export default function WesternPage() {
-  const { user, isLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<WesternData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, authLoading, router]);
 
   // TODO: 從 API 載入用戶的星盤數據
   useEffect(() => {
     // 模擬載入
-    setLoading(false);
+    setDataLoading(false);
   }, []);
 
-  if (isLoading || loading) {
+  if (authLoading || dataLoading) {
     return <div className={styles.loading}>載入中...</div>;
   }
 
