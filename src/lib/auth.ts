@@ -148,6 +148,53 @@ export function logout(): void {
 }
 
 /**
+ * Google OAuth Login
+ */
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
+export function getGoogleAuthUrl(): string {
+  const redirectUri = typeof window !== 'undefined' 
+    ? `${window.location.origin}/auth/callback`
+    : '';
+  
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+export async function loginWithGoogle(code: string): Promise<TokenPair> {
+  const redirectUri = typeof window !== 'undefined'
+    ? `${window.location.origin}/auth/callback`
+    : '';
+
+  const response = await fetch(`${API_URL}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, redirect_uri: redirectUri }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Google 登入失敗');
+  }
+
+  const tokens: TokenPair = await response.json();
+  setTokens(tokens);
+  return tokens;
+}
+
+export function isGoogleConfigured(): boolean {
+  return !!GOOGLE_CLIENT_ID;
+}
+
+/**
  * Make authenticated API request
  */
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
