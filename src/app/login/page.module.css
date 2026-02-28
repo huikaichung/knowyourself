@@ -1,0 +1,96 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+.meshBg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.orbPurple {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(127, 90, 240, 0.08) 0%, transparent 65%);
+  filter: blur(80px);
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 420px;
+}
+
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-10) var(--space-8);
+  text-align: center;
+}
+
+.card h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-headline);
+  margin-bottom: var(--space-3);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-bottom: var(--space-8);
+}
+
+.card button {
+  width: 100%;
+  padding: 0.875rem 2rem;
+  margin-bottom: var(--space-6);
+}
+
+.backLink {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: var(--text-body);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

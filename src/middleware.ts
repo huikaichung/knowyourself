@@ -8,10 +8,9 @@ export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('kys_auth')?.value;
   
   if (!authCookie) {
-    // Redirect to home with a message parameter
+    // Redirect to login page with redirect parameter
     const url = request.nextUrl.clone();
-    url.pathname = '/';
-    url.searchParams.set('auth', 'required');
+    url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }
