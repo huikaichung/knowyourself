@@ -296,7 +296,25 @@ export function DetailPage({ manualId }: Props) {
 function WesternRender({ data }: { data: any }) {
   const asc = data.ascendant;
   const mc = data.midheaven;
-  const planets = data.planets || [];
+  const interpretations = data.interpretations || {};
+  
+  // Map planet names to interpretation keys
+  const nameToKey: Record<string, string> = {
+    '太陽': 'sun', '月亮': 'moon', '水星': 'mercury', '金星': 'venus',
+    '火星': 'mars', '木星': 'jupiter', '土星': 'saturn', '天王星': 'uranus',
+    '海王星': 'neptune', '冥王星': 'pluto'
+  };
+  
+  // Merge interpretations into planets
+  const planets = (data.planets || []).map((p: Record<string, unknown>) => {
+    const key = nameToKey[p.name as string] || (p.name as string).toLowerCase();
+    const interp = interpretations[key];
+    return {
+      ...p,
+      interpretation: typeof interp === 'string' ? interp : interp?.interpretation || p.interpretation || ''
+    };
+  });
+  
   const aspects = data.aspects || [];
 
   return (
@@ -306,9 +324,9 @@ function WesternRender({ data }: { data: any }) {
       planets={planets} 
       aspects={aspects}
       stelliums={data.stelliums}
-      chartPattern={data.chart_pattern}
+      chartPattern={data.chart_pattern || data.patterns?.join(', ')}
       dominantElement={data.dominant_element}
-      summary={data.summary}
+      summary={interpretations.general_overview || data.summary}
     />
   );
 }
