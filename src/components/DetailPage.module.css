@@ -71,6 +71,26 @@
   overflow-y: auto;
 }
 
+.navSection {
+  margin-bottom: var(--space-4);
+}
+
+.navSectionTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-1);
+}
+
+.navArrow {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
 .navItem {
   display: flex;
   align-items: center;

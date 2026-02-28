@@ -16,12 +16,23 @@ interface Props {
   manualId: string;
 }
 
-const SYSTEMS: { key: DetailSystem; label: string; icon: string }[] = [
+const DESTINY_SYSTEMS: { key: DetailSystem; label: string; icon: string }[] = [
   { key: 'western', label: '西洋占星', icon: '☉' },
   { key: 'bazi', label: '八字命理', icon: '八' },
   { key: 'ziwei', label: '紫微斗數', icon: '紫' },
   { key: 'human_design', label: '人類圖', icon: '◈' },
   { key: 'meihua', label: '梅花易數', icon: '☯' },
+];
+
+const PSYCHOLOGY_TESTS = [
+  { key: 'bigfive', label: 'Big Five 人格', icon: '5', href: '/dashboard/psychology/bigfive' },
+  { key: 'mbti', label: 'MBTI 16型', icon: 'M', href: '/dashboard/psychology/mbti' },
+  { key: 'enneagram', label: '九型人格', icon: '9', href: '/dashboard/psychology/enneagram' },
+  { key: 'attachment', label: '依附類型', icon: '♡', href: '/dashboard/psychology/attachment' },
+];
+
+const AI_CONSULT = [
+  { key: 'chat', label: '開始對話', icon: '💬', href: '/chat' },
 ];
 
 const LOADING_HINTS: Record<string, string> = {
@@ -116,7 +127,7 @@ export function DetailPage({ manualId }: Props) {
   }
 
   const currentState = results[selectedSystem];
-  const currentSystemInfo = SYSTEMS.find(s => s.key === selectedSystem);
+  const currentSystemInfo = DESTINY_SYSTEMS.find(s => s.key === selectedSystem);
 
   return (
     <div className={styles.page}>
@@ -146,36 +157,72 @@ export function DetailPage({ manualId }: Props) {
         <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
           <div className={styles.sidebarHeader}>
             <h2>詳細解讀</h2>
-            <p>五大系統命盤分析</p>
+            <p>完整分析與測驗</p>
           </div>
           <nav className={styles.sidebarNav}>
-            {SYSTEMS.map(({ key, label, icon }) => {
-              const state = results[key];
-              const isActive = key === selectedSystem;
-              const hasData = state?.data;
-              const isLoading = state?.loading;
-              const hasError = state?.error;
-              
-              return (
-                <button
+            {/* 命理系統 */}
+            <div className={styles.navSection}>
+              <h3 className={styles.navSectionTitle}>命理系統</h3>
+              {DESTINY_SYSTEMS.map(({ key, label, icon }) => {
+                const state = results[key];
+                const isActive = key === selectedSystem;
+                const hasData = state?.data;
+                const isLoading = state?.loading;
+                const hasError = state?.error;
+                
+                return (
+                  <button
+                    key={key}
+                    className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                    onClick={() => handleSystemChange(key)}
+                  >
+                    <span className={styles.navIcon}>{icon}</span>
+                    <span className={styles.navLabel}>{label}</span>
+                    <span className={styles.navStatus}>
+                      {isLoading && <span className={styles.statusDot} />}
+                      {hasData && <span className={styles.statusCheck}>✓</span>}
+                      {hasError && <span className={styles.statusError}>!</span>}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 心理測驗 */}
+            <div className={styles.navSection}>
+              <h3 className={styles.navSectionTitle}>心理測驗</h3>
+              {PSYCHOLOGY_TESTS.map(({ key, label, icon, href }) => (
+                <Link
                   key={key}
-                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-                  onClick={() => handleSystemChange(key)}
+                  href={href}
+                  className={styles.navItem}
                 >
                   <span className={styles.navIcon}>{icon}</span>
                   <span className={styles.navLabel}>{label}</span>
-                  <span className={styles.navStatus}>
-                    {isLoading && <span className={styles.statusDot} />}
-                    {hasData && <span className={styles.statusCheck}>✓</span>}
-                    {hasError && <span className={styles.statusError}>!</span>}
-                  </span>
-                </button>
-              );
-            })}
+                  <span className={styles.navArrow}>→</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* AI 諮詢 */}
+            <div className={styles.navSection}>
+              <h3 className={styles.navSectionTitle}>AI 諮詢</h3>
+              {AI_CONSULT.map(({ key, label, icon, href }) => (
+                <Link
+                  key={key}
+                  href={href}
+                  className={styles.navItem}
+                >
+                  <span className={styles.navIcon}>{icon}</span>
+                  <span className={styles.navLabel}>{label}</span>
+                  <span className={styles.navArrow}>→</span>
+                </Link>
+              ))}
+            </div>
           </nav>
           <div className={styles.sidebarFooter}>
             <p className={styles.footerNote}>
-              以上為 AI 根據出生資訊的推估結果
+              命理為 AI 推估結果，心理測驗基於科學量表
             </p>
           </div>
         </aside>
