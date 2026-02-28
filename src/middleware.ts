@@ -1,20 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Routes that require authentication
-const PROTECTED_ROUTES = ['/dashboard'];
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Check if the route requires authentication
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => 
-    pathname.startsWith(route)
-  );
-  
-  if (!isProtectedRoute) {
-    return NextResponse.next();
-  }
   
   // Check for auth cookie (set by client when logging in)
   const authCookie = request.cookies.get('kys_auth')?.value;
@@ -32,5 +20,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  // Protect: /dashboard/* and /manual/*/details
+  matcher: ['/dashboard/:path*', '/manual/:id/details'],
 };
