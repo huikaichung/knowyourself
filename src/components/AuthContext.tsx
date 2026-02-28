@@ -1,14 +1,14 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { AuthUser, subscribeToAuthState, logout as authLogout } from '@/lib/auth';
+import { AuthUser, getStoredUser, getAccessToken, clearAuth, isLoggedIn } from '@/lib/google-auth';
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  logout: () => void;
+  refreshUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -17,30 +17,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Load user from storage on mount
   useEffect(() => {
-    // Subscribe to Firebase auth state changes
-    const unsubscribe = subscribeToAuthState((authUser) => {
-      setUser(authUser);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    if (isLoggedIn()) {
+      const storedUser = getStoredUser();
+      setUser(storedUser);
+    }
+    setLoading(false);
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    // Firebase handles this automatically via subscribeToAuthState
+  // Listen for storage changes (login from another tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'kys_access_token') {
+        if (e.newValue) {
+          const storedUser = getStoredUser();
+          setUser(storedUser);
+        } else {
+          setUser(null);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const logout = async () => {
-    await authLogout();
+  const refreshUser = useCallback(() => {
+    if (isLoggedIn()) {
+      const storedUser = getStoredUser();
+      setUser(storedUser);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    clearAuth();
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{
       user,
       loading,
-      isAuthenticated: !!user,
+      isAuthenticated: !!user && !!getAccessToken(),
       logout,
       refreshUser,
     }}>
