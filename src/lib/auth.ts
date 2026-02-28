@@ -1,26 +1,30 @@
 /**
- * Auth utilities for knowyourself
+ * Auth utilities for knowyourself - Firebase Auth
  */
 
+import { 
+  signInWithPopup, 
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  User,
+} from 'firebase/auth';
+import { auth, googleProvider, isFirebaseConfigured } from './firebase';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
+
+// Re-export for checking
+export { isFirebaseConfigured };
 
 export interface AuthUser {
   id: string;
   email: string;
   name?: string;
   avatar_url?: string;
-}
-
-export interface TokenPair {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
+  firebaseUser?: User;
 }
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'kys_access_token';
-const REFRESH_TOKEN_KEY = 'kys_refresh_token';
 
 /**
  * Get stored access token
@@ -31,22 +35,13 @@ export function getAccessToken(): string | null {
 }
 
 /**
- * Get stored refresh token
+ * Store token
  */
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
-}
-
-/**
- * Store tokens (localStorage + cookie for middleware)
- */
-export function setTokens(tokens: TokenPair): void {
+export function setAccessToken(token: string): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
-  // Set cookie for middleware auth check (expires in 7 days)
-  document.cookie = `kys_auth=1; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  // Set cookie for middleware auth check (session-only)
+  document.cookie = `kys_auth=1; path=/; SameSite=Lax`;
 }
 
 /**
@@ -55,7 +50,6 @@ export function setTokens(tokens: TokenPair): void {
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
   // Clear auth cookie
   document.cookie = 'kys_auth=; path=/; max-age=0';
 }
@@ -68,157 +62,103 @@ export function isLoggedIn(): boolean {
 }
 
 /**
- * Email login (no password MVP)
+ * Sign in with Google using Firebase Auth
  */
-export async function loginWithEmail(email: string, name?: string): Promise<TokenPair> {
-  const response = await fetch(`${API_URL}/auth/email`, {
+export async function signInWithGoogle(): Promise<AuthUser> {
+  if (!auth || !googleProvider) {
+    throw new Error('Firebase Auth 尚未設定');
+  }
+  
+  const result = await signInWithPopup(auth, googleProvider);
+  const user = result.user;
+  
+  // Get Firebase ID token
+  const idToken = await user.getIdToken();
+  
+  // Exchange Firebase token for our backend token
+  const response = await fetch(`${API_URL}/auth/firebase`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name }),
+    body: JSON.stringify({ id_token: idToken }),
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || '登入失敗');
+    // If backend doesn't support Firebase auth yet, just use Firebase directly
+    setAccessToken(idToken);
+    return {
+      id: user.uid,
+      email: user.email || '',
+      name: user.displayName || undefined,
+      avatar_url: user.photoURL || undefined,
+      firebaseUser: user,
+    };
   }
 
-  const tokens: TokenPair = await response.json();
-  setTokens(tokens);
-  return tokens;
+  const data = await response.json();
+  setAccessToken(data.access_token || idToken);
+  
+  return {
+    id: user.uid,
+    email: user.email || '',
+    name: user.displayName || undefined,
+    avatar_url: user.photoURL || undefined,
+    firebaseUser: user,
+  };
 }
 
 /**
- * Refresh access token
+ * Subscribe to auth state changes
  */
-export async function refreshAccessToken(): Promise<TokenPair | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
-
-  try {
-    const response = await fetch(`${API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-
-    if (!response.ok) {
+export function subscribeToAuthState(callback: (user: AuthUser | null) => void): () => void {
+  if (!auth) {
+    // Firebase not configured, return no-op unsubscribe
+    callback(null);
+    return () => {};
+  }
+  
+  return onAuthStateChanged(auth, async (firebaseUser) => {
+    if (firebaseUser) {
+      const idToken = await firebaseUser.getIdToken();
+      setAccessToken(idToken);
+      callback({
+        id: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: firebaseUser.displayName || undefined,
+        avatar_url: firebaseUser.photoURL || undefined,
+        firebaseUser,
+      });
+    } else {
       clearTokens();
-      return null;
+      callback(null);
     }
-
-    const tokens: TokenPair = await response.json();
-    setTokens(tokens);
-    return tokens;
-  } catch {
-    clearTokens();
-    return null;
-  }
-}
-
-/**
- * Get current user info
- */
-export async function getCurrentUser(): Promise<AuthUser | null> {
-  const token = getAccessToken();
-  if (!token) return null;
-
-  try {
-    const response = await fetch(`${API_URL}/auth/me`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        // Try refresh
-        const newTokens = await refreshAccessToken();
-        if (newTokens) {
-          return getCurrentUser();
-        }
-      }
-      return null;
-    }
-
-    return response.json();
-  } catch {
-    return null;
-  }
+  });
 }
 
 /**
  * Logout
  */
-export function logout(): void {
+export async function logout(): Promise<void> {
+  if (auth) {
+    await firebaseSignOut(auth);
+  }
   clearTokens();
 }
 
 /**
- * Google OAuth Login
+ * Get current Firebase user
  */
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-
-export function getGoogleAuthUrl(): string {
-  const redirectUri = typeof window !== 'undefined' 
-    ? `${window.location.origin}/auth/callback`
-    : '';
-  
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'openid email profile',
-    access_type: 'offline',
-    prompt: 'consent',
-  });
-
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-}
-
-export async function loginWithGoogle(code: string): Promise<TokenPair> {
-  const redirectUri = typeof window !== 'undefined'
-    ? `${window.location.origin}/auth/callback`
-    : '';
-
-  const response = await fetch(`${API_URL}/auth/google`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, redirect_uri: redirectUri }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Google 登入失敗');
-  }
-
-  const tokens: TokenPair = await response.json();
-  setTokens(tokens);
-  return tokens;
-}
-
-export function isGoogleConfigured(): boolean {
-  return !!GOOGLE_CLIENT_ID;
+export function getCurrentFirebaseUser(): User | null {
+  return auth?.currentUser || null;
 }
 
 /**
- * Make authenticated API request
+ * Refresh token
  */
-export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = getAccessToken();
+export async function refreshToken(): Promise<string | null> {
+  const user = auth?.currentUser;
+  if (!user) return null;
   
-  const headers = new Headers(options.headers);
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  let response = await fetch(url, { ...options, headers });
-
-  // If 401, try refresh and retry
-  if (response.status === 401 && token) {
-    const newTokens = await refreshAccessToken();
-    if (newTokens) {
-      headers.set('Authorization', `Bearer ${newTokens.access_token}`);
-      response = await fetch(url, { ...options, headers });
-    }
-  }
-
-  return response;
+  const token = await user.getIdToken(true);
+  setAccessToken(token);
+  return token;
 }

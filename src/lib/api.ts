@@ -286,3 +286,160 @@ export async function deleteSavedManual(userId: string, manualId: string): Promi
 
   return response.json();
 }
+
+// ============================================================
+// CHAT API
+// ============================================================
+
+export interface ManualContext {
+  label?: string;
+  tagline?: string;
+  zodiac?: string;
+  chinese_zodiac?: string;
+  sun_sign?: string;
+  moon_sign?: string;
+  rising_sign?: string;
+  bazi_summary?: string;
+  human_design_type?: string;
+  human_design_strategy?: string;
+  human_design_authority?: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  manual_id?: string;
+  manual_context?: ManualContext;
+  conversation_id?: string;
+  stream?: boolean;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: string[];
+}
+
+export interface ChatResponse {
+  conversation_id: string;
+  message: ChatMessage;
+}
+
+/**
+ * Send a chat message (non-streaming)
+ */
+export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+  const response = await fetch(`${API_URL}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error('對話失敗');
+  }
+
+  return response.json();
+}
+
+/**
+ * Send a chat message with SSE streaming
+ */
+export async function sendChatMessageStream(
+  request: ChatRequest,
+  onChunk: (content: string) => void,
+  onDone: (conversationId: string) => void,
+  onError: (error: string) => void
+): Promise<void> {
+  const response = await fetch(`${API_URL}/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error('對話失敗');
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('無法讀取串流');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    
+    // Process SSE events
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === 'chunk') {
+            onChunk(data.content);
+          } else if (data.type === 'done') {
+            onDone(data.conversation_id);
+          } else if (data.type === 'error') {
+            onError(data.content);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Clear chat conversation
+ */
+export async function clearChatConversation(conversationId: string): Promise<void> {
+  await fetch(`${API_URL}/chat/${conversationId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Extract ManualContext from UserManual
+ */
+export function extractManualContext(manual: UserManual): ManualContext {
+  const ctx: ManualContext = {};
+  
+  if (manual.profile?.label) ctx.label = manual.profile.label;
+  if (manual.profile?.tagline) ctx.tagline = manual.profile.tagline;
+  
+  if (manual.deep_data) {
+    const dd = manual.deep_data;
+    if (dd.zodiac_name) ctx.zodiac = dd.zodiac_name;
+    if (dd.chinese_zodiac) ctx.chinese_zodiac = dd.chinese_zodiac;
+    
+    if (dd.western) {
+      if (dd.western.sun_sign) ctx.sun_sign = dd.western.sun_sign;
+      if (dd.western.moon_sign) ctx.moon_sign = dd.western.moon_sign;
+      if (dd.western.rising_sign) ctx.rising_sign = dd.western.rising_sign;
+    }
+    
+    if (dd.chinese?.bazi_summary) {
+      ctx.bazi_summary = dd.chinese.bazi_summary;
+    }
+    
+    if (dd.human_design) {
+      if (dd.human_design.type) ctx.human_design_type = dd.human_design.type;
+      if (dd.human_design.strategy) ctx.human_design_strategy = dd.human_design.strategy;
+      if (dd.human_design.authority) ctx.human_design_authority = dd.human_design.authority;
+    }
+  }
+  
+  return ctx;
+}

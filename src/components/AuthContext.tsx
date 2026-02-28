@@ -1,14 +1,13 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { AuthUser, getCurrentUser, loginWithEmail, logout as authLogout, isLoggedIn } from '@/lib/auth';
+import { AuthUser, subscribeToAuthState, logout as authLogout } from '@/lib/auth';
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, name?: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -18,33 +17,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-    } catch {
-      setUser(null);
-    }
+  useEffect(() => {
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = subscribeToAuthState((authUser) => {
+      setUser(authUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    // Check auth status on mount
-    const checkAuth = async () => {
-      if (isLoggedIn()) {
-        await refreshUser();
-      }
-      setLoading(false);
-    };
-    checkAuth();
-  }, [refreshUser]);
+  const refreshUser = useCallback(async () => {
+    // Firebase handles this automatically via subscribeToAuthState
+  }, []);
 
-  const login = async (email: string, name?: string) => {
-    await loginWithEmail(email, name);
-    await refreshUser();
-  };
-
-  const logout = () => {
-    authLogout();
+  const logout = async () => {
+    await authLogout();
     setUser(null);
   };
 
@@ -53,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       isAuthenticated: !!user,
-      login,
       logout,
       refreshUser,
     }}>
