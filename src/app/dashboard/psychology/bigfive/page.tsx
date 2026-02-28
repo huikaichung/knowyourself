@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthContext';
+import { useState } from 'react';
 import Link from 'next/link';
 import styles from '../../dashboard.module.css';
 import {
@@ -14,26 +12,10 @@ import {
 } from '@/lib/tests/bigfive';
 
 export default function BigFivePage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<BigFiveResult | null>(null);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
-  }
-
-  if (!user) {
-    return null;
-  }
 
   const handleAnswer = (value: number) => {
     const newAnswers = { ...answers, [questions[currentQuestion].id]: value };

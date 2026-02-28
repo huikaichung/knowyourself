@@ -148,13 +148,19 @@ export const questions: MBTIQuestion[] = [
   { id: 70, text: '我覺得過度規劃會限制自由', text_en: 'I feel over-planning limits freedom', dimension: 'JP', pole: 'P' },
 ];
 
+export interface DimensionResult {
+  dominant: 'E' | 'I' | 'S' | 'N' | 'T' | 'F' | 'J' | 'P';
+  percentage: number;
+  [key: string]: string | number;
+}
+
 export interface MBTIResult {
   type: string; // e.g., "INTJ"
   dimensions: {
-    EI: { E: number; I: number; dominant: 'E' | 'I'; percentage: number };
-    SN: { S: number; N: number; dominant: 'S' | 'N'; percentage: number };
-    TF: { T: number; F: number; dominant: 'T' | 'F'; percentage: number };
-    JP: { J: number; P: number; dominant: 'J' | 'P'; percentage: number };
+    EI: DimensionResult;
+    SN: DimensionResult;
+    TF: DimensionResult;
+    JP: DimensionResult;
   };
 }
 
@@ -225,7 +231,7 @@ function calculateDimensionResult(
   score2: number, 
   pole1: string, 
   pole2: string
-): { [key: string]: number; dominant: 'E' | 'I' | 'S' | 'N' | 'T' | 'F' | 'J' | 'P'; percentage: number } {
+): DimensionResult {
   const total = score1 + score2 || 1;
   const dominant = score1 >= score2 ? pole1 : pole2;
   const percentage = Math.round((Math.max(score1, score2) / total) * 100);
