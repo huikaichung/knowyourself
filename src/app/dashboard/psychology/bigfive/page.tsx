@@ -5,75 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import Link from 'next/link';
 import styles from '../../dashboard.module.css';
-
-// Big Five 問題 - 簡化版 (每個維度 10 題)
-const questions = [
-  // Openness (開放性)
-  { id: 1, text: '我喜歡嘗試新事物和新體驗', trait: 'O', reversed: false },
-  { id: 2, text: '我對藝術和美學有濃厚興趣', trait: 'O', reversed: false },
-  { id: 3, text: '我喜歡思考抽象的概念和理論', trait: 'O', reversed: false },
-  { id: 4, text: '我傾向於堅持熟悉的做事方式', trait: 'O', reversed: true },
-  { id: 5, text: '我有豐富的想像力', trait: 'O', reversed: false },
-  
-  // Conscientiousness (盡責性)
-  { id: 6, text: '我做事有條理、有計畫', trait: 'C', reversed: false },
-  { id: 7, text: '我會按時完成任務和承諾', trait: 'C', reversed: false },
-  { id: 8, text: '我注重細節', trait: 'C', reversed: false },
-  { id: 9, text: '我有時會拖延重要的事情', trait: 'C', reversed: true },
-  { id: 10, text: '我對自己的工作有高標準', trait: 'C', reversed: false },
-  
-  // Extraversion (外向性)
-  { id: 11, text: '我在社交場合感到精力充沛', trait: 'E', reversed: false },
-  { id: 12, text: '我喜歡成為眾人關注的焦點', trait: 'E', reversed: false },
-  { id: 13, text: '我更喜歡獨處或小團體活動', trait: 'E', reversed: true },
-  { id: 14, text: '我容易與陌生人交談', trait: 'E', reversed: false },
-  { id: 15, text: '我是個健談的人', trait: 'E', reversed: false },
-  
-  // Agreeableness (親和性)
-  { id: 16, text: '我關心他人的感受', trait: 'A', reversed: false },
-  { id: 17, text: '我願意幫助有需要的人', trait: 'A', reversed: false },
-  { id: 18, text: '我在衝突中傾向於妥協', trait: 'A', reversed: false },
-  { id: 19, text: '我有時會對他人的動機產生懷疑', trait: 'A', reversed: true },
-  { id: 20, text: '我容易信任別人', trait: 'A', reversed: false },
-  
-  // Neuroticism (神經質)
-  { id: 21, text: '我經常感到焦慮或擔憂', trait: 'N', reversed: false },
-  { id: 22, text: '我的情緒容易波動', trait: 'N', reversed: false },
-  { id: 23, text: '面對壓力時我能保持冷靜', trait: 'N', reversed: true },
-  { id: 24, text: '我有時會感到沮喪或憂鬱', trait: 'N', reversed: false },
-  { id: 25, text: '小事情有時會讓我很煩躁', trait: 'N', reversed: false },
-];
-
-const traitNames: Record<string, string> = {
-  O: '開放性',
-  C: '盡責性',
-  E: '外向性',
-  A: '親和性',
-  N: '神經質',
-};
-
-const traitDescriptions: Record<string, { high: string; low: string }> = {
-  O: {
-    high: '你富有創造力和好奇心，喜歡探索新想法和體驗。你欣賞藝術和美學，思想開放。',
-    low: '你偏好實際和傳統的方式，喜歡熟悉和穩定的環境，做事務實。',
-  },
-  C: {
-    high: '你有條理、可靠，善於規劃和執行。你對自己有高標準，注重細節。',
-    low: '你更隨性和靈活，可能不太注重計畫和細節，但更能適應變化。',
-  },
-  E: {
-    high: '你精力充沛，喜歡社交活動。你容易與人互動，在團體中感到自在。',
-    low: '你偏好獨處或小團體，在安靜的環境中更能充電。你更內斂和深思。',
-  },
-  A: {
-    high: '你富有同理心，樂於助人。你重視和諧，容易與人合作。',
-    low: '你更獨立和直接，可能更關注自己的需求和觀點。',
-  },
-  N: {
-    high: '你對情緒較為敏感，可能較容易感到焦慮或壓力。這也意味著你對環境變化更警覺。',
-    low: '你情緒穩定，面對壓力能保持冷靜。你較少被負面情緒影響。',
-  },
-};
+import {
+  questions,
+  domains,
+  calculateBigFiveResults,
+  getDomainDescription,
+  type BigFiveResult,
+} from '@/lib/tests/bigfive';
 
 export default function BigFivePage() {
   const { user, loading } = useAuth();
@@ -81,7 +19,7 @@ export default function BigFivePage() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<Record<string, number>>({});
+  const [results, setResults] = useState<BigFiveResult | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -98,39 +36,26 @@ export default function BigFivePage() {
   }
 
   const handleAnswer = (value: number) => {
-    setAnswers({ ...answers, [questions[currentQuestion].id]: value });
-    
+    const newAnswers = { ...answers, [questions[currentQuestion].id]: value };
+    setAnswers(newAnswers);
+
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      // 計算結果
-      calculateResults();
+      // Calculate results
+      const result = calculateBigFiveResults(newAnswers);
+      setResults(result);
+      setShowResults(true);
     }
   };
 
-  const calculateResults = () => {
-    const scores: Record<string, number[]> = { O: [], C: [], E: [], A: [], N: [] };
-    
-    questions.forEach((q) => {
-      const answer = answers[q.id];
-      if (answer !== undefined) {
-        const score = q.reversed ? 6 - answer : answer;
-        scores[q.trait].push(score);
-      }
-    });
-
-    const finalScores: Record<string, number> = {};
-    Object.keys(scores).forEach((trait) => {
-      const traitScores = scores[trait];
-      const avg = traitScores.reduce((a, b) => a + b, 0) / traitScores.length;
-      finalScores[trait] = Math.round((avg / 5) * 100);
-    });
-
-    setResults(finalScores);
-    setShowResults(true);
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
   };
 
-  if (showResults) {
+  if (showResults && results) {
     return (
       <div className={styles.container}>
         <header className={styles.header}>
@@ -138,43 +63,99 @@ export default function BigFivePage() {
             ← 返回
           </Link>
           <h1 style={{ marginTop: '1rem' }}>你的 Big Five 結果</h1>
+          <p style={{ color: '#888', fontSize: '0.9rem' }}>
+            基於 IPIP-NEO 60 題完整版
+          </p>
         </header>
 
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          {Object.entries(results).map(([trait, score]) => (
-            <div
-              key={trait}
-              style={{
-                background: 'rgba(59, 130, 246, 0.1)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                borderRadius: '1rem',
-                padding: '1.5rem',
-                marginBottom: '1rem',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <h3>{traitNames[trait]}</h3>
-                <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{score}%</span>
-              </div>
-              <div style={{
-                height: '8px',
-                background: 'rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                overflow: 'hidden',
-                marginBottom: '1rem',
-              }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          {domains.map((domain) => {
+            const domainResult = results.domains[domain.code];
+            const percentage = domainResult.percentage;
+            
+            return (
+              <div
+                key={domain.code}
+                style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  borderRadius: '1rem',
+                  padding: '1.5rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <h3>{domain.name} ({domain.name_en})</h3>
+                  <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{percentage}%</span>
+                </div>
+                
+                {/* Main progress bar */}
                 <div style={{
-                  height: '100%',
-                  width: `${score}%`,
-                  background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
-                  borderRadius: '4px',
-                }} />
+                  height: '12px',
+                  background: 'rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  marginBottom: '1rem',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${percentage}%`,
+                    background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+                    borderRadius: '6px',
+                    transition: 'width 0.5s ease-out',
+                  }} />
+                </div>
+                
+                <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>
+                  {getDomainDescription(domain.code, percentage)}
+                </p>
+
+                {/* Facet breakdown */}
+                <div style={{
+                  borderTop: '1px solid rgba(255,255,255,0.1)',
+                  paddingTop: '1rem',
+                }}>
+                  <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '0.5rem' }}>子面向分數：</p>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '0.5rem',
+                  }}>
+                    {domain.facets.map((facet) => {
+                      const facetResult = domainResult.facets[facet.code];
+                      return (
+                        <div key={facet.code} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          fontSize: '0.8rem',
+                        }}>
+                          <span style={{ color: '#888', minWidth: '60px' }}>{facet.name}</span>
+                          <div style={{
+                            flex: 1,
+                            height: '6px',
+                            background: 'rgba(255,255,255,0.1)',
+                            borderRadius: '3px',
+                            overflow: 'hidden',
+                          }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${facetResult.percentage}%`,
+                              background: '#3b82f6',
+                              borderRadius: '3px',
+                            }} />
+                          </div>
+                          <span style={{ color: '#666', minWidth: '30px', textAlign: 'right' }}>
+                            {facetResult.percentage}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-              <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                {score >= 50 ? traitDescriptions[trait].high : traitDescriptions[trait].low}
-              </p>
-            </div>
-          ))}
+            );
+          })}
 
           <Link
             href="/dashboard/psychology"
@@ -206,9 +187,10 @@ export default function BigFivePage() {
           ← 返回
         </Link>
         <h1 style={{ marginTop: '1rem' }}>Big Five 人格測驗</h1>
+        <p style={{ color: '#888', fontSize: '0.9rem' }}>60 題完整版</p>
       </header>
 
-      {/* 進度條 */}
+      {/* Progress bar */}
       <div style={{
         height: '4px',
         background: 'rgba(255,255,255,0.1)',
@@ -228,7 +210,7 @@ export default function BigFivePage() {
         <p style={{ color: '#888', marginBottom: '1rem' }}>
           問題 {currentQuestion + 1} / {questions.length}
         </p>
-        
+
         <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem', lineHeight: 1.5 }}>
           {question.text}
         </h2>
@@ -260,6 +242,23 @@ export default function BigFivePage() {
             </button>
           ))}
         </div>
+
+        {currentQuestion > 0 && (
+          <button
+            onClick={handlePrevious}
+            style={{
+              marginTop: '1.5rem',
+              padding: '0.75rem 1.5rem',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '0.5rem',
+              color: '#888',
+              cursor: 'pointer',
+            }}
+          >
+            ← 上一題
+          </button>
+        )}
       </div>
     </div>
   );
