@@ -9,19 +9,19 @@ import { getAccessToken } from '@/lib/auth';
 import { NatalChart } from './charts/NatalChart';
 import { BodyGraph } from './charts/BodyGraph';
 import { ChartDetailDrawer, type ChartDetail } from './ChartDetailDrawer';
-import { PLANETS, SIGNS, HOUSES } from '@/data/astrology-explanations';
+import { PLANETS, SIGNS } from '@/data/astrology-explanations';
 import styles from './DetailPage.module.css';
 
 interface Props {
   manualId: string;
 }
 
-const SYSTEMS: { key: DetailSystem; label: string }[] = [
-  { key: 'western', label: '西洋占星' },
-  { key: 'bazi', label: '八字命理' },
-  { key: 'ziwei', label: '紫微斗數' },
-  { key: 'human_design', label: '人類圖' },
-  { key: 'meihua', label: '梅花易數' },
+const SYSTEMS: { key: DetailSystem; label: string; icon: string }[] = [
+  { key: 'western', label: '西洋占星', icon: '☉' },
+  { key: 'bazi', label: '八字命理', icon: '八' },
+  { key: 'ziwei', label: '紫微斗數', icon: '紫' },
+  { key: 'human_design', label: '人類圖', icon: '◈' },
+  { key: 'meihua', label: '梅花易數', icon: '☯' },
 ];
 
 const LOADING_HINTS: Record<string, string> = {
@@ -35,12 +35,12 @@ const LOADING_HINTS: Record<string, string> = {
 export function DetailPage({ manualId }: Props) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  const [selectedSystem, setSelectedSystem] = useState<DetailSystem>('western');
   const [results, setResults] = useState<Record<string, { data?: DetailResponse; loading: boolean; error?: string }>>({});
   const [needLogin, setNeedLogin] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const completed = Object.values(results).filter(r => !r.loading).length;
-  const total = SYSTEMS.length;
-
+  // Load data for selected system
   useEffect(() => {
     if (authLoading) return;
     
@@ -49,31 +49,33 @@ export function DetailPage({ manualId }: Props) {
       return;
     }
 
-    // Init all as loading
-    const init: Record<string, { data?: DetailResponse; loading: boolean; error?: string }> = {};
-    SYSTEMS.forEach(s => { init[s.key] = { loading: true }; });
-    setResults(init);
+    // If already have data for this system, skip
+    if (results[selectedSystem]?.data || results[selectedSystem]?.loading) return;
 
-    // Fire all in parallel with auth token
+    // Start loading this system
+    setResults(prev => ({ ...prev, [selectedSystem]: { loading: true } }));
+
     const token = getAccessToken();
-    SYSTEMS.forEach(({ key }) => {
-      getManualDetail(manualId, key, token || undefined)
-        .then(data => {
-          setResults(prev => ({ ...prev, [key]: { data, loading: false } }));
-        })
-        .catch(err => {
-          if (err.message === 'NEED_LOGIN') {
-            setNeedLogin(true);
-          }
-          setResults(prev => ({ ...prev, [key]: { loading: false, error: err.message } }));
-        });
-    });
-  }, [manualId, isAuthenticated, authLoading]);
+    getManualDetail(manualId, selectedSystem, token || undefined)
+      .then(data => {
+        setResults(prev => ({ ...prev, [selectedSystem]: { data, loading: false } }));
+      })
+      .catch(err => {
+        if (err.message === 'NEED_LOGIN') {
+          setNeedLogin(true);
+        }
+        setResults(prev => ({ ...prev, [selectedSystem]: { loading: false, error: err.message } }));
+      });
+  }, [manualId, selectedSystem, isAuthenticated, authLoading, results]);
 
   const handleLoginSuccess = () => {
     setNeedLogin(false);
-    // Refresh the page to reload with auth
     window.location.reload();
+  };
+
+  const handleSystemChange = (key: DetailSystem) => {
+    setSelectedSystem(key);
+    setSidebarOpen(false); // Close mobile sidebar on selection
   };
 
   // Show login prompt if not authenticated
@@ -113,10 +115,14 @@ export function DetailPage({ manualId }: Props) {
     );
   }
 
+  const currentState = results[selectedSystem];
+  const currentSystemInfo = SYSTEMS.find(s => s.key === selectedSystem);
+
   return (
     <div className={styles.page}>
       <div className={styles.meshBg}><div className={styles.orbPurple} /></div>
 
+      {/* Mobile header with menu button */}
       <header className={styles.header}>
         <Link href={`/manual/${manualId}`} className={styles.back}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -124,83 +130,114 @@ export function DetailPage({ manualId }: Props) {
           </svg>
           返回說明書
         </Link>
+        <button 
+          className={styles.menuBtn}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
       </header>
 
-      <main className={styles.main}>
-        <div className={styles.titleBlock}>
-          <h1 className={styles.title}>詳細解讀</h1>
-          <p className={styles.subtitle}>
-            {completed < total 
-              ? `正在深度解讀中 · ${completed}/${total} 完成`
-              : '五大系統的完整命盤分析'
-            }
-          </p>
-          {completed === 0 && (
-            <p className={styles.loadingHint}>每個系統約需 5-10 秒，請稍候</p>
-          )}
-        </div>
+      <div className={styles.layout}>
+        {/* Sidebar */}
+        <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
+          <div className={styles.sidebarHeader}>
+            <h2>詳細解讀</h2>
+            <p>五大系統命盤分析</p>
+          </div>
+          <nav className={styles.sidebarNav}>
+            {SYSTEMS.map(({ key, label, icon }) => {
+              const state = results[key];
+              const isActive = key === selectedSystem;
+              const hasData = state?.data;
+              const isLoading = state?.loading;
+              const hasError = state?.error;
+              
+              return (
+                <button
+                  key={key}
+                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                  onClick={() => handleSystemChange(key)}
+                >
+                  <span className={styles.navIcon}>{icon}</span>
+                  <span className={styles.navLabel}>{label}</span>
+                  <span className={styles.navStatus}>
+                    {isLoading && <span className={styles.statusDot} />}
+                    {hasData && <span className={styles.statusCheck}>✓</span>}
+                    {hasError && <span className={styles.statusError}>!</span>}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className={styles.sidebarFooter}>
+            <p className={styles.footerNote}>
+              以上為 AI 根據出生資訊的推估結果
+            </p>
+          </div>
+        </aside>
 
-        {SYSTEMS.map(({ key, label }) => {
-          const state = results[key];
-          if (!state) return null;
+        {/* Backdrop for mobile */}
+        {sidebarOpen && (
+          <div className={styles.backdrop} onClick={() => setSidebarOpen(false)} />
+        )}
 
-          if (state.loading) {
-            return (
-              <section key={key} className={styles.card}>
-                <h2 className={styles.cardTitle}>{label}</h2>
-                <div className={styles.cardLoading}>
-                  <div className={styles.loadingHeader}>
-                    <div className={styles.loadingDot} />
-                    <span>{LOADING_HINTS[key] || '正在解讀...'}</span>
-                  </div>
-                  <div>
-                    <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
-                    <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
-                    <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
-                  </div>
-                  <div>
-                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
-                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
-                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
-                    <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
-                  </div>
+        {/* Main content */}
+        <main className={styles.content}>
+          {/* Current system card */}
+          {!currentState || currentState.loading ? (
+            <section className={styles.card}>
+              <h2 className={styles.cardTitle}>{currentSystemInfo?.label}</h2>
+              <div className={styles.cardLoading}>
+                <div className={styles.loadingHeader}>
+                  <div className={styles.loadingDot} />
+                  <span>{LOADING_HINTS[selectedSystem] || '正在解讀...'}</span>
                 </div>
-              </section>
-            );
-          }
-
-          if (state.error) {
-            return (
-              <section key={key} className={styles.card}>
-                <h2 className={styles.cardTitle}>{label}</h2>
-                <p className={styles.cardError}>載入失敗：{state.error}</p>
-              </section>
-            );
-          }
-
-          const d = state.data?.data as Record<string, unknown>;
-          if (!d) return null;
-
-          return (
-            <section key={key} className={`${styles.card} ${styles.cardReady}`}>
-              <h2 className={styles.cardTitle}>{label}</h2>
-              {key === 'western' && <WesternRender data={d} />}
-              {key === 'bazi' && <BaziRender data={d} />}
-              {key === 'ziwei' && <ZiweiRender data={d} />}
-              {key === 'human_design' && <HumanDesignRender data={d} />}
-              {key === 'meihua' && <MeihuaRender data={d} />}
+                <div>
+                  <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonPill}`} />
+                </div>
+                <div>
+                  <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                </div>
+              </div>
             </section>
-          );
-        })}
-
-        <p className={styles.disclaimer}>
-          以上為 AI 根據出生資訊的推估結果，精確解讀建議使用專業軟體或諮詢專業命理師
-        </p>
-
-        <div className={styles.backAction}>
-          <Link href={`/manual/${manualId}`} className="btn btn-ghost">返回說明書</Link>
-        </div>
-      </main>
+          ) : currentState.error ? (
+            <section className={styles.card}>
+              <h2 className={styles.cardTitle}>{currentSystemInfo?.label}</h2>
+              <p className={styles.cardError}>載入失敗：{currentState.error}</p>
+              <button 
+                className="btn btn-ghost"
+                onClick={() => {
+                  setResults(prev => {
+                    const next = { ...prev };
+                    delete next[selectedSystem];
+                    return next;
+                  });
+                }}
+              >
+                重試
+              </button>
+            </section>
+          ) : (
+            <section className={`${styles.card} ${styles.cardReady}`}>
+              <h2 className={styles.cardTitle}>{currentSystemInfo?.label}</h2>
+              {selectedSystem === 'western' && <WesternRender data={currentState.data?.data as Record<string, unknown>} />}
+              {selectedSystem === 'bazi' && <BaziRender data={currentState.data?.data as Record<string, unknown>} />}
+              {selectedSystem === 'ziwei' && <ZiweiRender data={currentState.data?.data as Record<string, unknown>} />}
+              {selectedSystem === 'human_design' && <HumanDesignRender data={currentState.data?.data as Record<string, unknown>} />}
+              {selectedSystem === 'meihua' && <MeihuaRender data={currentState.data?.data as Record<string, unknown>} />}
+            </section>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
