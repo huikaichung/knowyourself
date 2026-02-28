@@ -2,13 +2,13 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'placeholder',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'selfkitart.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'selfkitart',
+  apiKey: 'REMOVED',
+  authDomain: 'selfkitart.firebaseapp.com',
+  projectId: 'selfkitart',
 };
 
-// Check if Firebase is properly configured
-export const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+// Firebase is now always configured
+export const isFirebaseConfigured = true;
 
 // Initialize Firebase only once and only on client side
 let app: FirebaseApp | null = null;
