@@ -39,12 +39,14 @@ export function getRefreshToken(): string | null {
 }
 
 /**
- * Store tokens
+ * Store tokens (localStorage + cookie for middleware)
  */
 export function setTokens(tokens: TokenPair): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
   localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  // Set cookie for middleware auth check (expires in 7 days)
+  document.cookie = `kys_auth=1; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 }
 
 /**
@@ -54,6 +56,8 @@ export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // Clear auth cookie
+  document.cookie = 'kys_auth=; path=/; max-age=0';
 }
 
 /**
