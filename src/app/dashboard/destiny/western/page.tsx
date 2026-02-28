@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import Link from 'next/link';
-import styles from '../dashboard.module.css';
+import styles from '../destiny.module.css';
 
 interface WesternData {
   sun: { sign: string; degree: number; house?: number };
