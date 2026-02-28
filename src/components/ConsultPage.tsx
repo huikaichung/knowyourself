@@ -49,8 +49,28 @@ export function ConsultPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    const errors: string[] = [];
+    
     if (!birthDate) {
-      setError('請填寫出生日期');
+      errors.push('請填寫出生日期');
+    } else {
+      // Validate date format and range
+      const date = new Date(birthDate);
+      const today = new Date();
+      const minDate = new Date('1900-01-01');
+      if (isNaN(date.getTime())) {
+        errors.push('出生日期格式不正確');
+      } else if (date > today) {
+        errors.push('出生日期不能是未來');
+      } else if (date < minDate) {
+        errors.push('出生日期太早了');
+      }
+    }
+    
+    if (errors.length > 0) {
+      setError(errors.join('、'));
       return;
     }
 
@@ -150,9 +170,14 @@ export function ConsultPage() {
                 type="date"
                 id="birthDate"
                 value={birthDate}
-                onChange={e => setBirthDate(e.target.value)}
+                onChange={e => {
+                  setBirthDate(e.target.value);
+                  setError(null);
+                }}
+                min="1900-01-01"
                 max={new Date().toISOString().split('T')[0]}
                 required
+                className={!birthDate && error ? styles.inputError : ''}
               />
             </div>
 
