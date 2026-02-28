@@ -148,6 +148,7 @@ async function verifyGoogleToken(idToken: string): Promise<{ access_token: strin
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id_token: idToken }),
+    mode: 'cors',
   });
 
   if (!response.ok) {
