@@ -68,6 +68,10 @@ export function ConsultPage() {
         errors.push('出生日期太早了');
       }
     }
+
+    if (!gender) {
+      errors.push('請選擇性別');
+    }
     
     if (errors.length > 0) {
       setError(errors.join('、'));
@@ -206,7 +210,7 @@ export function ConsultPage() {
 
             {/* Gender */}
             <div className={styles.field}>
-              <label>性別</label>
+              <label>性別 <span className={styles.required}>*</span></label>
               <div className={styles.genderGroup}>
                 {(['male', 'female'] as const).map(g => (
                   <button
