@@ -20,5 +20,5 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Protect: /dashboard/* and /manual/*/details
-  matcher: ['/dashboard/:path*', '/manual/:id/details'],
+  matcher: ['/dashboard/:path*', '/manual/:path*/details'],
 };
