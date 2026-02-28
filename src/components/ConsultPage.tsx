@@ -69,6 +69,14 @@ export function ConsultPage() {
       }
     }
 
+    if (!birthTime) {
+      errors.push('請填寫出生時間');
+    }
+
+    if (!selectedCity) {
+      errors.push('請選擇出生地點');
+    }
+
     if (!gender) {
       errors.push('請選擇性別');
     }
@@ -187,25 +195,28 @@ export function ConsultPage() {
 
             {/* Birth time */}
             <div className={styles.field}>
-              <label htmlFor="birthTime">出生時間</label>
+              <label htmlFor="birthTime">
+                出生時間 <span className={styles.required}>*</span>
+              </label>
               <input
                 type="time"
                 id="birthTime"
                 value={birthTime}
                 onChange={e => setBirthTime(e.target.value)}
+                required
               />
-              <span className={styles.hint}>選填，可提升分析精準度</span>
             </div>
 
             {/* Birth place */}
             <div className={styles.field}>
-              <label htmlFor="birthPlace">出生地點</label>
+              <label htmlFor="birthPlace">
+                出生地點 <span className={styles.required}>*</span>
+              </label>
               <CitySelector
                 value={selectedCity}
                 onChange={setSelectedCity}
                 placeholder="搜索出生城市..."
               />
-              <span className={styles.hint}>選填，可提升星盤計算精準度</span>
             </div>
 
             {/* Gender */}
