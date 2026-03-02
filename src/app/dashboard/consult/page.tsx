@@ -70,16 +70,30 @@ export default function ConsultPage() {
     setLoading(true);
 
     try {
-      // TODO: 呼叫 AI API，傳入選中的資料
       const selectedSources = sources.filter((s) => selectedIds.has(s.id));
       
-      // 模擬 AI 回應
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const aiResponse = `我收到了你的問題：「${userMessage}」\n\n你選擇了以下資料來源：${
-        selectedSources.map((s) => s.name).join('、') || '（無）'
-      }\n\n這是一個示範回應，實際功能開發中...`;
+      // 構建 manual context
+      const manualContext = selectedSources.length > 0 ? {
+        label: selectedSources.map(s => s.name).join('、'),
+      } : undefined;
 
-      setChatHistory((prev) => [...prev, { role: 'ai', content: aiResponse }]);
+      // 調用真正的 Chat API
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          manual_context: manualContext,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+      setChatHistory((prev) => [...prev, { role: 'ai', content: data.message.content }]);
     } catch (error) {
       console.error(error);
       setChatHistory((prev) => [

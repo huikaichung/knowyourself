@@ -53,12 +53,14 @@ export default function WesternPage() {
   }
 
   const tabs = [
-    { id: 'overview', label: '總覽', href: '/dashboard/western' },
-    { id: 'planets', label: '行星', href: '/dashboard/western/planets' },
-    { id: 'houses', label: '宮位', href: '/dashboard/western/houses' },
-    { id: 'aspects', label: '相位', href: '/dashboard/western/aspects' },
-    { id: 'transits', label: '流年', href: '/dashboard/western/transits' },
+    { id: 'overview', label: '總覽' },
+    { id: 'planets', label: '行星 (開發中)' },
+    { id: 'houses', label: '宮位 (開發中)' },
+    { id: 'aspects', label: '相位 (開發中)' },
+    { id: 'transits', label: '流年 (開發中)' },
   ];
+
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <div className={styles.container}>
@@ -78,22 +80,24 @@ export default function WesternPage() {
         paddingBottom: '0.5rem',
       }}>
         {tabs.map((tab) => (
-          <Link
+          <button
             key={tab.id}
-            href={tab.href}
+            onClick={() => tab.id === 'overview' && setActiveTab(tab.id)}
+            disabled={tab.id !== 'overview'}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '0.5rem',
-              background: tab.id === 'overview' 
+              background: activeTab === tab.id 
                 ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
                 : 'rgba(255,255,255,0.05)',
-              color: 'white',
-              textDecoration: 'none',
+              color: tab.id === 'overview' ? 'white' : 'rgba(255,255,255,0.4)',
+              border: 'none',
+              cursor: tab.id === 'overview' ? 'pointer' : 'not-allowed',
               whiteSpace: 'nowrap',
             }}
           >
             {tab.label}
-          </Link>
+          </button>
         ))}
       </nav>
 
