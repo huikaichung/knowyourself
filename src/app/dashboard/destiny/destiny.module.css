@@ -3,12 +3,132 @@
   margin: 0 auto;
 }
 
+.container {
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, rgba(255,255,255,0.7));
+}
+
+/* Card Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color, #f59e0b);
+}
+
+.cardIcon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.card h2 {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.card p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Setup Banner */
+.setupBanner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.setupBanner p {
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.setupBtn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.setupBtn:hover {
+  opacity: 0.9;
+}
+
+/* List View */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.planetName {
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.planetSign {
+  flex: 1;
+  text-align: center;
+}
+
+.planetDegree {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+}
+
+.aspectType {
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin: 0 0.5rem;
+}
+
+.orb {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
 }
 
 .header {
