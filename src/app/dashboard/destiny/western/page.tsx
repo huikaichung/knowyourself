@@ -31,6 +31,15 @@ export default function WesternPage() {
   const router = useRouter();
   const [data, setData] = useState<WesternData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const tabs = [
+    { id: 'overview', label: '總覽' },
+    { id: 'planets', label: '行星 (開發中)' },
+    { id: 'houses', label: '宮位 (開發中)' },
+    { id: 'aspects', label: '相位 (開發中)' },
+    { id: 'transits', label: '流年 (開發中)' },
+  ];
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -51,16 +60,6 @@ export default function WesternPage() {
   if (!user) {
     return null;
   }
-
-  const tabs = [
-    { id: 'overview', label: '總覽' },
-    { id: 'planets', label: '行星 (開發中)' },
-    { id: 'houses', label: '宮位 (開發中)' },
-    { id: 'aspects', label: '相位 (開發中)' },
-    { id: 'transits', label: '流年 (開發中)' },
-  ];
-
-  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <div className={styles.container}>
