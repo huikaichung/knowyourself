@@ -14,7 +14,13 @@ const NAV_SECTIONS = [
       { href: '/dashboard/destiny/ziwei', icon: '紫', label: '紫微斗數' },
       { href: '/dashboard/destiny/bazi', icon: '八', label: '八字命理' },
       { href: '/dashboard/destiny/humandesign', icon: '◈', label: '人類圖' },
-      { href: '/dashboard/destiny/meihua', icon: '☯', label: '梅花易數' },
+    ],
+  },
+  {
+    title: '即時占卜',
+    items: [
+      { href: '/dashboard/divination/tarot', icon: '🎴', label: '塔羅牌' },
+      { href: '/dashboard/divination/meihua', icon: '☯', label: '梅花易數' },
     ],
   },
   {

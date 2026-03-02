@@ -20,11 +20,11 @@ const QUICK_ACTIONS = [
     color: '#8b5cf6',
   },
   {
-    title: '人格測驗',
-    description: '探索你的性格特質',
-    href: '/dashboard/psychology/bigfive',
-    icon: '🧠',
-    color: '#10b981',
+    title: '塔羅牌',
+    description: '78 張完整牌組・即時占卜',
+    href: '/dashboard/divination/tarot',
+    icon: '🎴',
+    color: '#ec4899',
   },
   {
     title: 'AI 諮詢',
