@@ -117,12 +117,29 @@ export async function initGoogleSignIn(
     window.google.accounts.id.initialize({
       client_id: config.google_client_id,
       callback: async (response: { credential: string }) => {
+        console.log('[GSI] Callback received, credential length:', response.credential?.length || 0);
         try {
+          if (!response.credential) {
+            console.error('[GSI] No credential in response!', response);
+            onError('Google 登入失敗：未收到憑證');
+            return;
+          }
           // Send credential to backend for verification
           const result = await verifyGoogleToken(response.credential);
+          console.log('[GSI] Backend result:', { 
+            hasAccessToken: !!result.access_token, 
+            tokenLength: result.access_token?.length,
+            hasUser: !!result.user 
+          });
+          if (!result.access_token) {
+            console.error('[GSI] No access_token in backend response!', result);
+            onError('登入失敗：伺服器未回傳 token');
+            return;
+          }
           setAuthData(result.access_token, result.user);
           onSuccess(result.user);
         } catch (err) {
+          console.error('[GSI] Error:', err);
           onError(err instanceof Error ? err.message : '登入失敗');
         }
       },
@@ -144,6 +161,7 @@ export async function initGoogleSignIn(
  * Verify Google ID token with backend
  */
 async function verifyGoogleToken(idToken: string): Promise<{ access_token: string; user: AuthUser }> {
+  console.log('[verifyGoogleToken] Sending to backend, idToken length:', idToken?.length);
   const response = await fetch(`${API_URL}/auth/google/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -151,12 +169,17 @@ async function verifyGoogleToken(idToken: string): Promise<{ access_token: strin
     mode: 'cors',
   });
 
+  console.log('[verifyGoogleToken] Response status:', response.status);
+  
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    console.error('[verifyGoogleToken] Error response:', error);
     throw new Error(error.detail || 'Google 驗證失敗');
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('[verifyGoogleToken] Success response keys:', Object.keys(data));
+  return data;
 }
 
 /**
