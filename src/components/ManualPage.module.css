@@ -289,9 +289,22 @@
 /* ===== 6. Actions ===== */
 .actions {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: var(--space-3);
-  justify-content: center;
   padding: var(--space-10) 0 var(--space-6);
+}
+.actions > button,
+.actions > a {
+  min-width: 160px;
+}
+.saveStatus {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(127, 90, 240, 0.08);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
 }
 
 /* ===== 7. Footer ===== */

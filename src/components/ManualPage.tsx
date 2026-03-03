@@ -70,19 +70,12 @@ export function ManualPage({ manualId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingSave, setPendingSave] = useState(false);
+  const [hasTriedAutoSave, setHasTriedAutoSave] = useState(false);
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
 
-  // Handle pending save after login
-  useEffect(() => {
-    if (pendingSave && isAuthenticated && user) {
-      setPendingSave(false);
-      performSave(user.id);
-    }
-  }, [pendingSave, isAuthenticated, user]);
-
-  const performSave = async (userId: string) => {
+  const performSave = useCallback(async (userId: string) => {
+    if (saveStatus === 'saving' || saveStatus === 'saved') return;
     setSaveStatus('saving');
     try {
       await saveManual(userId, manualId);
@@ -91,7 +84,36 @@ export function ManualPage({ manualId }: Props) {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 2000);
     }
-  };
+  }, [manualId, saveStatus]);
+
+  // Auto-save logic: runs after manual loaded + auth state resolved
+  useEffect(() => {
+    if (isLoading || authLoading || hasTriedAutoSave) return;
+    
+    // Mark that we've tried auto-save (prevent re-triggering)
+    setHasTriedAutoSave(true);
+    
+    if (isAuthenticated && user) {
+      // Already logged in → auto-save
+      performSave(user.id);
+    } else {
+      // Not logged in → show login modal for auto-save
+      setShowLoginModal(true);
+    }
+  }, [isLoading, authLoading, isAuthenticated, user, hasTriedAutoSave, performSave]);
+
+  // Handle save after successful login
+  const handleLoginSuccess = useCallback(() => {
+    setShowLoginModal(false);
+    // Give AuthContext a moment to update, then save
+    setTimeout(() => {
+      const storedUser = localStorage.getItem('kys_user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        performSave(userData.id);
+      }
+    }, 100);
+  }, [performSave]);
 
   useEffect(() => {
     async function load() {
@@ -115,19 +137,6 @@ export function ManualPage({ manualId }: Props) {
       alert('已複製連結');
     }
   }, []);
-
-  const handleSave = useCallback(async () => {
-    if (saveStatus === 'saving' || saveStatus === 'saved') return;
-    
-    // Require login to save
-    if (!isAuthenticated || !user) {
-      setPendingSave(true);
-      setShowLoginModal(true);
-      return;
-    }
-    
-    performSave(user.id);
-  }, [saveStatus, isAuthenticated, user]);
 
   if (isLoading) {
     return (
@@ -163,12 +172,9 @@ export function ManualPage({ manualId }: Props) {
         isOpen={showLoginModal} 
         onClose={() => {
           setShowLoginModal(false);
-          setPendingSave(false);
         }}
-        onSuccess={() => {
-          setShowLoginModal(false);
-          // pendingSave + useEffect will handle the actual save
-        }}
+        onSuccess={handleLoginSuccess}
+        message="登入後自動儲存你的說明書"
       />
 
       {/* Background */}
@@ -264,17 +270,15 @@ export function ManualPage({ manualId }: Props) {
 
         {/* 6. ACTIONS */}
         <div className={styles.actions}>
-          <button 
-            className={`btn ${saveStatus === 'saved' ? 'btn-ghost' : 'btn-primary'}`}
-            onClick={handleSave}
-            disabled={saveStatus === 'saving' || saveStatus === 'saved'}
-          >
-            {saveStatus === 'idle' && '儲存說明書'}
-            {saveStatus === 'saving' && '儲存中...'}
-            {saveStatus === 'saved' && '✓ 已儲存'}
-            {saveStatus === 'error' && '儲存失敗'}
-          </button>
-          <button className="btn btn-ghost" onClick={handleShare}>
+          {/* Save status indicator */}
+          {saveStatus !== 'idle' && (
+            <div className={styles.saveStatus}>
+              {saveStatus === 'saving' && '💾 儲存中...'}
+              {saveStatus === 'saved' && '✓ 已儲存到你的帳號'}
+              {saveStatus === 'error' && '⚠️ 儲存失敗'}
+            </div>
+          )}
+          <button className="btn btn-primary" onClick={handleShare}>
             分享給朋友
           </button>
           <Link href="/consult" className="btn btn-ghost">

@@ -8,9 +8,10 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (user: AuthUser) => void;
+  message?: string;
 }
 
-export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
+export function LoginModal({ isOpen, onClose, onSuccess, message }: LoginModalProps) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         
         <h2 className={styles.title}>登入</h2>
         <p className={styles.subtitle}>
-          使用 Google 帳號登入，即可儲存你的分析結果
+          {message || '使用 Google 帳號登入，即可儲存你的分析結果'}
         </p>
 
         {error && <p className={styles.error}>{error}</p>}
