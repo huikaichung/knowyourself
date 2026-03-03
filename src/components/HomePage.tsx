@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from './AuthContext';
 import styles from './HomePage.module.css';
 
 const CHAPTERS = [
@@ -15,6 +16,7 @@ const CHAPTERS = [
 
 export function HomePage() {
   const [loaded, setLoaded] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 50);
@@ -68,9 +70,12 @@ export function HomePage() {
           開始認識自己
         </Link>
 
-        {/* Trust line */}
+        {/* Trust line - different text based on auth state */}
         <p className={styles.trust}>
-          免費 · 無需註冊 · 資料不留存
+          {isAuthenticated 
+            ? '免費 · 登入後可儲存說明書'
+            : '免費 · 無需註冊即可體驗'
+          }
         </p>
       </main>
 

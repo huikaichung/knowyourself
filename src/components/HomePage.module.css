@@ -43,6 +43,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-8) var(--space-6);
+  padding-top: calc(56px + var(--space-8)); /* Account for fixed header */
   z-index: 2;
   opacity: 0;
   transform: translateY(16px);

@@ -36,7 +36,7 @@
 /* ===== Header ===== */
 .header {
   position: sticky;
-  top: 0;
+  top: 56px; /* Account for fixed global header */
   z-index: 20;
   display: flex;
   align-items: center;

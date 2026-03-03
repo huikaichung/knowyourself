@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthContext';
+import { HeaderWrapper } from '@/components/HeaderWrapper';
 
 export const metadata: Metadata = {
   title: '你的使用說明書',
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="zh-TW">
       <body>
         <AuthProvider>
+          <HeaderWrapper />
           {children}
         </AuthProvider>
       </body>

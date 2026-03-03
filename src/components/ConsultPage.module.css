@@ -28,6 +28,7 @@
   position: relative;
   z-index: 10;
   padding: var(--space-4) var(--space-6);
+  padding-top: calc(56px + var(--space-4)); /* Account for fixed global header */
 }
 .back {
   display: inline-flex;

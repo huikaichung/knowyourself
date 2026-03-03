@@ -1,0 +1,204 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.logo:hover {
+  opacity: 1;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loading {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+.loginBtn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background: linear-gradient(135deg, #7f5af0, #6366f1);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.loginBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(127, 90, 240, 0.3);
+}
+
+.userArea {
+  position: relative;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #7f5af0, #6366f1);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, transform 0.2s;
+  padding: 0;
+}
+
+.avatar:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatarFallback {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 200px;
+  background: rgba(20, 20, 30, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  z-index: 100;
+  animation: menuSlide 0.15s ease-out;
+}
+
+@keyframes menuSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menuHeader {
+  padding: 0.75rem 1rem;
+}
+
+.menuName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.menuEmail {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0.25rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .logo {
+    font-size: 0.875rem;
+  }
+  
+  .loginBtn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .menu {
+    right: -0.5rem;
+    min-width: 180px;
+  }
+}
