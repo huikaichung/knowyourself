@@ -91,17 +91,23 @@ export function ConsultPage() {
     setLoadingPhase(0);
     setProgress(0);
 
+    // Build birth info object
+    const birthInfo = {
+      birth_date: birthDate,
+      birth_time: birthTime || undefined,
+      birth_place: selectedCity?.name || undefined,
+      latitude: selectedCity?.latitude,
+      longitude: selectedCity?.longitude,
+      timezone: selectedCity?.timezone,
+      gender: gender || undefined,
+    };
+    
+    // Store in localStorage for later retrieval after login
+    localStorage.setItem('kys_birth_info', JSON.stringify(birthInfo));
+
     try {
       const result = await generateManual({
-        birth_info: {
-          birth_date: birthDate,
-          birth_time: birthTime || undefined,
-          birth_place: selectedCity?.name || undefined,
-          latitude: selectedCity?.latitude,
-          longitude: selectedCity?.longitude,
-          timezone: selectedCity?.timezone,
-          gender: gender || undefined,
-        },
+        birth_info: birthInfo,
       });
       setProgress(100);
       setTimeout(() => {

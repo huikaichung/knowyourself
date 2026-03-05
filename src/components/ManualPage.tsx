@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getManual, saveManual, type UserManual } from '@/lib/api';
+import { getManual, saveManual, type UserManual, type BirthInfo } from '@/lib/api';
 import { RadarChart } from './RadarChart';
 import { useAuth } from './AuthContext';
 import { LoginModal } from './LoginModal';
@@ -103,13 +103,47 @@ export function ManualPage({ manualId }: Props) {
   }, [isLoading, authLoading, isAuthenticated, hasTriedAutoSave, performSave]);
 
   // Handle save after successful login
-  const handleLoginSuccess = useCallback(() => {
+  const handleLoginSuccess = useCallback(async () => {
     setShowLoginModal(false);
-    // Give AuthContext a moment to update, then save using cookie
-    setTimeout(() => {
-      performSave();
-    }, 100);
-  }, [performSave]);
+    
+    // Give AuthContext a moment to update
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Save the manual
+    performSave();
+    
+    // Also save birth info to user profile
+    if (manual) {
+      try {
+        const birthInfo: BirthInfo = {
+          birth_date: manual.birth_date,
+        };
+        // Extract additional birth info if available
+        const deepData = manual.deep_data;
+        if (deepData?.western?.has_birth_time) {
+          // If we have birth time info, it's stored in the manual generation
+          // We can extract it from localStorage where ConsultPage stored it
+          const cachedBirthInfo = localStorage.getItem('kys_birth_info');
+          if (cachedBirthInfo) {
+            const cached = JSON.parse(cachedBirthInfo);
+            Object.assign(birthInfo, cached);
+          }
+        }
+        
+        // Save to user profile via API
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
+        await fetch(`${API_URL}/auth/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ birth_info: birthInfo }),
+        });
+      } catch (err) {
+        console.error('Failed to save birth info:', err);
+        // Don't show error to user - this is a background save
+      }
+    }
+  }, [performSave, manual]);
 
   useEffect(() => {
     async function load() {
