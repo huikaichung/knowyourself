@@ -26,7 +26,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art';
+// API_BASE should NOT include /api/v1 since it's added by the fetch calls
+// But NEXT_PUBLIC_API_URL already includes /api/v1, so we need to handle both cases
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art';
+// Remove trailing /api/v1 if present to normalize
+const API_BASE = RAW_API_URL.replace(/\/api\/v1\/?$/, '');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
