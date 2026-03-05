@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { AuthUser, getStoredUser, getAccessToken, clearAuth, isLoggedIn } from '@/lib/google-auth';
+import { AuthUser, getStoredUser, clearAuth, isLoggedIn, verifyAuth, setUserData } from '@/lib/google-auth';
 
 export interface BirthInfo {
   birth_date: string;  // YYYY-MM-DD
@@ -19,69 +19,83 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   hasBirthInfo: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateBirthInfo: (info: BirthInfo) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// API_BASE should NOT include /api/v1 since it's added by the fetch calls
-// But NEXT_PUBLIC_API_URL already includes /api/v1, so we need to handle both cases
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art';
-// Remove trailing /api/v1 if present to normalize
-const API_BASE = RAW_API_URL.replace(/\/api\/v1\/?$/, '');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch full profile from API
+  // Fetch full profile from API using httpOnly cookie
   const fetchProfile = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) return;
-
     try {
-      const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${API_URL}/auth/me`, {
+        credentials: 'include',  // Send httpOnly cookies
       });
       if (res.ok) {
         const data = await res.json();
+        // Update user data
+        const userData: AuthUser = {
+          id: data.id,
+          email: data.email,
+          name: data.name,
+          avatar_url: data.avatar_url,
+        };
+        setUser(userData);
+        setUserData(userData);
+        
         if (data.birth_info) {
           setBirthInfo(data.birth_info);
           localStorage.setItem('kys_birth_info', JSON.stringify(data.birth_info));
         }
+        return true;
+      } else {
+        // Not authenticated - clear local state
+        setUser(null);
+        localStorage.removeItem('kys_user');
+        return false;
       }
     } catch (err) {
       console.error('Failed to fetch profile:', err);
+      return false;
     }
   }, []);
 
-  // Load user from storage on mount
+  // Verify auth on mount
   useEffect(() => {
-    if (isLoggedIn()) {
+    async function init() {
+      // First check if we have local user data
       const storedUser = getStoredUser();
-      setUser(storedUser);
-      
-      // Load cached birth info
-      const cachedBirthInfo = localStorage.getItem('kys_birth_info');
-      if (cachedBirthInfo) {
-        setBirthInfo(JSON.parse(cachedBirthInfo));
+      if (storedUser) {
+        setUser(storedUser);
+        
+        // Load cached birth info
+        const cachedBirthInfo = localStorage.getItem('kys_birth_info');
+        if (cachedBirthInfo) {
+          setBirthInfo(JSON.parse(cachedBirthInfo));
+        }
       }
       
-      // Fetch fresh profile from API
-      fetchProfile();
+      // Then verify with backend (this will update user if httpOnly cookie is valid)
+      await fetchProfile();
+      setLoading(false);
     }
-    setLoading(false);
+    init();
   }, [fetchProfile]);
 
   // Listen for storage changes (login from another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'kys_access_token') {
+      if (e.key === 'kys_user') {
         if (e.newValue) {
-          const storedUser = getStoredUser();
+          const storedUser = JSON.parse(e.newValue);
           setUser(storedUser);
           fetchProfile();
         } else {
@@ -96,24 +110,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const refreshUser = useCallback(async () => {
-    if (isLoggedIn()) {
-      const storedUser = getStoredUser();
-      setUser(storedUser);
-      await fetchProfile();
-    }
+    await fetchProfile();
   }, [fetchProfile]);
 
   const updateBirthInfo = useCallback(async (info: BirthInfo): Promise<boolean> => {
-    const token = getAccessToken();
-    if (!token) return false;
-
     try {
-      const res = await fetch(`${API_BASE}/api/v1/auth/profile`, {
+      const res = await fetch(`${API_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',  // Send httpOnly cookies
         body: JSON.stringify({ birth_info: info }),
       });
       
@@ -129,8 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    clearAuth();
+  const logout = useCallback(async () => {
+    await clearAuth();
     setUser(null);
     setBirthInfo(null);
     localStorage.removeItem('kys_birth_info');
@@ -141,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       birthInfo,
       loading,
-      isAuthenticated: !!user && !!getAccessToken(),
+      isAuthenticated: !!user,
       hasBirthInfo: !!birthInfo?.birth_date,
       logout,
       refreshUser,

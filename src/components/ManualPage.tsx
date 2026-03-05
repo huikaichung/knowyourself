@@ -74,11 +74,11 @@ export function ManualPage({ manualId }: Props) {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
 
-  const performSave = useCallback(async (userId: string) => {
+  const performSave = useCallback(async () => {
     if (saveStatus === 'saving' || saveStatus === 'saved') return;
     setSaveStatus('saving');
     try {
-      await saveManual(userId, manualId);
+      await saveManual(manualId);  // Uses httpOnly cookie for auth
       setSaveStatus('saved');
     } catch {
       setSaveStatus('error');
@@ -93,25 +93,21 @@ export function ManualPage({ manualId }: Props) {
     // Mark that we've tried auto-save (prevent re-triggering)
     setHasTriedAutoSave(true);
     
-    if (isAuthenticated && user) {
+    if (isAuthenticated) {
       // Already logged in → auto-save
-      performSave(user.id);
+      performSave();
     } else {
       // Not logged in → show login modal for auto-save
       setShowLoginModal(true);
     }
-  }, [isLoading, authLoading, isAuthenticated, user, hasTriedAutoSave, performSave]);
+  }, [isLoading, authLoading, isAuthenticated, hasTriedAutoSave, performSave]);
 
   // Handle save after successful login
   const handleLoginSuccess = useCallback(() => {
     setShowLoginModal(false);
-    // Give AuthContext a moment to update, then save
+    // Give AuthContext a moment to update, then save using cookie
     setTimeout(() => {
-      const storedUser = localStorage.getItem('kys_user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        performSave(userData.id);
-      }
+      performSave();
     }, 100);
   }, [performSave]);
 

@@ -1,5 +1,6 @@
 /**
- * Google Sign-In (GSI) - No API key needed, Client ID from backend config
+ * Google Sign-In (GSI) - httpOnly Cookie Auth
+ * Tokens are stored in httpOnly cookies by the backend
  */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
@@ -11,41 +12,80 @@ export interface AuthUser {
   avatar_url?: string;
 }
 
-// Token storage
-const ACCESS_TOKEN_KEY = 'kys_access_token';
+// User storage (only user info, NOT tokens - tokens are in httpOnly cookies)
 const USER_KEY = 'kys_user';
 
 // Cached config
 let cachedConfig: { google_client_id: string } | null = null;
 
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
-}
-
+/**
+ * Get stored user info (NOT the token - that's in httpOnly cookie)
+ */
 export function getStoredUser(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem(USER_KEY);
   return stored ? JSON.parse(stored) : null;
 }
 
-export function setAuthData(token: string, user: AuthUser): void {
+/**
+ * Store user info locally (for UI display only)
+ */
+export function setUserData(user: AuthUser): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(ACCESS_TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
-  // Set cookie for middleware
-  document.cookie = `kys_auth=1; path=/; SameSite=Lax`;
 }
 
-export function clearAuth(): void {
+/**
+ * Clear local user data and call logout endpoint to clear cookies
+ */
+export async function clearAuth(): Promise<void> {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-  document.cookie = 'kys_auth=; path=/; max-age=0';
+  
+  // Call backend to clear httpOnly cookies
+  try {
+    await fetch(`${API_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (e) {
+    console.error('Logout error:', e);
+  }
 }
 
+/**
+ * Check if user is logged in by checking stored user data
+ * Note: actual auth is verified by backend via httpOnly cookie
+ */
 export function isLoggedIn(): boolean {
-  return !!getAccessToken();
+  return !!getStoredUser();
+}
+
+/**
+ * Verify auth status with backend (checks httpOnly cookie)
+ */
+export async function verifyAuth(): Promise<AuthUser | null> {
+  try {
+    const response = await fetch(`${API_URL}/auth/me`, {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      // Not authenticated - clear local user data
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+    const data = await response.json();
+    const user: AuthUser = {
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      avatar_url: data.avatar_url,
+    };
+    setUserData(user);
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -117,26 +157,22 @@ export async function initGoogleSignIn(
     window.google.accounts.id.initialize({
       client_id: config.google_client_id,
       callback: async (response: { credential: string }) => {
-        console.log('[GSI] Callback received, credential length:', response.credential?.length || 0);
         try {
           if (!response.credential) {
-            console.error('[GSI] No credential in response!', response);
             onError('Google 登入失敗：未收到憑證');
             return;
           }
-          // Send credential to backend for verification
+          
+          // Send credential to backend - it will set httpOnly cookies
           const result = await verifyGoogleToken(response.credential);
-          console.log('[GSI] Backend result:', { 
-            hasAccessToken: !!result.access_token, 
-            tokenLength: result.access_token?.length,
-            hasUser: !!result.user 
-          });
-          if (!result.access_token) {
-            console.error('[GSI] No access_token in backend response!', result);
-            onError('登入失敗：伺服器未回傳 token');
+          
+          if (!result.user) {
+            onError('登入失敗');
             return;
           }
-          setAuthData(result.access_token, result.user);
+          
+          // Store user info for UI (token is in httpOnly cookie)
+          setUserData(result.user);
           onSuccess(result.user);
         } catch (err) {
           console.error('[GSI] Error:', err);
@@ -159,34 +195,29 @@ export async function initGoogleSignIn(
 
 /**
  * Verify Google ID token with backend
+ * Backend sets httpOnly cookies, we only get user info back
  */
-async function verifyGoogleToken(idToken: string): Promise<{ access_token: string; user: AuthUser }> {
-  console.log('[verifyGoogleToken] Sending to backend, idToken length:', idToken?.length);
+async function verifyGoogleToken(idToken: string): Promise<{ user: AuthUser }> {
   const response = await fetch(`${API_URL}/auth/google/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id_token: idToken }),
-    mode: 'cors',
+    credentials: 'include',  // Important: allow cookies to be set
   });
-
-  console.log('[verifyGoogleToken] Response status:', response.status);
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    console.error('[verifyGoogleToken] Error response:', error);
     throw new Error(error.detail || 'Google 驗證失敗');
   }
 
-  const data = await response.json();
-  console.log('[verifyGoogleToken] Success response keys:', Object.keys(data));
-  return data;
+  return response.json();
 }
 
 /**
- * Logout
+ * Logout - clear local data and server cookies
  */
-export function logout(): void {
-  clearAuth();
+export async function logout(): Promise<void> {
+  await clearAuth();
   // Also revoke Google session if available
   if (window.google?.accounts) {
     window.google.accounts.id.disableAutoSelect();

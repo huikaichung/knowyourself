@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getManualDetail, type DetailSystem, type DetailResponse } from '@/lib/api';
 import { useAuth } from './AuthContext';
 import { LoginModal } from './LoginModal';
-import { getAccessToken } from '@/lib/auth';
+// Token now in httpOnly cookie - no need to pass explicitly
 import { NatalChart } from './charts/NatalChart';
 import { BodyGraph } from './charts/BodyGraph';
 import { ChartDetailDrawer, type ChartDetail } from './ChartDetailDrawer';
@@ -71,8 +71,8 @@ export function DetailPage({ manualId }: Props) {
     // Start loading this system
     setResults(prev => ({ ...prev, [selectedSystem]: { loading: true } }));
 
-    const token = getAccessToken();
-    getManualDetail(manualId, selectedSystem, token || undefined)
+    // Uses httpOnly cookie for auth
+    getManualDetail(manualId, selectedSystem)
       .then(data => {
         setResults(prev => ({ ...prev, [selectedSystem]: { data, loading: false } }));
       })

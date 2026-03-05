@@ -196,15 +196,12 @@ export interface DetailResponse {
 }
 
 /**
- * Get detailed reading for a specific system (requires auth)
+ * Get detailed reading for a specific system (requires auth via httpOnly cookie)
  */
-export async function getManualDetail(manualId: string, system: DetailSystem, accessToken?: string): Promise<DetailResponse> {
-  const headers: Record<string, string> = {};
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-  
-  const response = await fetch(`${API_URL}/manual/${manualId}/detail/${system}`, { headers });
+export async function getManualDetail(manualId: string, system: DetailSystem): Promise<DetailResponse> {
+  const response = await fetch(`${API_URL}/manual/${manualId}/detail/${system}`, {
+    credentials: 'include',  // Send httpOnly cookies
+  });
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -222,13 +219,14 @@ export async function getManualDetail(manualId: string, system: DetailSystem, ac
 // ============================================================
 
 /**
- * Save a manual to user's collection
+ * Save a manual to user's collection (uses httpOnly cookie for auth)
  */
-export async function saveManual(userId: string, manualId: string): Promise<{ success: boolean; doc_id: string }> {
+export async function saveManual(manualId: string): Promise<{ success: boolean; doc_id: string }> {
   const response = await fetch(`${API_URL}/manual/save`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, manual_id: manualId }),
+    body: JSON.stringify({ manual_id: manualId }),
+    credentials: 'include',  // Send httpOnly cookies
   });
 
   if (!response.ok) {
