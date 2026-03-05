@@ -16,12 +16,18 @@ interface Props {
   manualId: string;
 }
 
+// 命理四系統 (需要出生資料)
 const DESTINY_SYSTEMS: { key: DetailSystem; label: string; icon: string }[] = [
   { key: 'western', label: '西洋占星', icon: '☉' },
   { key: 'bazi', label: '八字命理', icon: '八' },
   { key: 'ziwei', label: '紫微斗數', icon: '紫' },
   { key: 'human_design', label: '人類圖', icon: '◈' },
-  { key: 'meihua', label: '梅花易數', icon: '☯' },
+];
+
+// 即時占卜 (獨立功能，不需要出生資料)
+const INSTANT_DIVINATION = [
+  { key: 'tarot', label: '塔羅牌', icon: '🃏', href: '/dashboard/divination/tarot' },
+  { key: 'meihua', label: '梅花易數', icon: '☯', href: '/dashboard/divination/meihua' },
 ];
 
 const PSYCHOLOGY_TESTS = [
@@ -40,7 +46,6 @@ const LOADING_HINTS: Record<string, string> = {
   bazi: '排列四柱八字與十神...',
   ziwei: '安星佈局十二宮...',
   human_design: '計算能量中心與通道...',
-  meihua: '起卦分析體用關係...',
 };
 
 export function DetailPage({ manualId }: Props) {
@@ -188,6 +193,22 @@ export function DetailPage({ manualId }: Props) {
               })}
             </div>
 
+            {/* 即時占卜 */}
+            <div className={styles.navSection}>
+              <h3 className={styles.navSectionTitle}>即時占卜</h3>
+              {INSTANT_DIVINATION.map(({ key, label, icon, href }) => (
+                <Link
+                  key={key}
+                  href={href}
+                  className={styles.navItem}
+                >
+                  <span className={styles.navIcon}>{icon}</span>
+                  <span className={styles.navLabel}>{label}</span>
+                  <span className={styles.navArrow}>→</span>
+                </Link>
+              ))}
+            </div>
+
             {/* 心理測驗 */}
             <div className={styles.navSection}>
               <h3 className={styles.navSectionTitle}>心理測驗</h3>
@@ -280,7 +301,6 @@ export function DetailPage({ manualId }: Props) {
               {selectedSystem === 'bazi' && <BaziRender data={currentState.data?.data as Record<string, unknown>} />}
               {selectedSystem === 'ziwei' && <ZiweiRender data={currentState.data?.data as Record<string, unknown>} />}
               {selectedSystem === 'human_design' && <HumanDesignRender data={currentState.data?.data as Record<string, unknown>} />}
-              {selectedSystem === 'meihua' && <MeihuaRender data={currentState.data?.data as Record<string, unknown>} />}
             </section>
           )}
         </main>
