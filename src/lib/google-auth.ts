@@ -154,9 +154,15 @@ export async function initGoogleSignIn(
       return;
     }
 
+    // Get the callback URL for redirect mode
+    const callbackUrl = `${window.location.origin}/api/auth/google/callback`;
+    
     window.google.accounts.id.initialize({
       client_id: config.google_client_id,
+      ux_mode: 'redirect',  // Use redirect instead of popup to avoid COOP issues
+      login_uri: callbackUrl,
       callback: async (response: { credential: string }) => {
+        // This callback is for popup mode (fallback)
         try {
           if (!response.credential) {
             onError('Google 登入失敗：未收到憑證');
