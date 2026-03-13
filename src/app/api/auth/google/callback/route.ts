@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://knowyourself.selfkit.art';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,8 @@ export async function POST(request: NextRequest) {
     const credential = formData.get('credential') as string;
     
     if (!credential) {
-      return NextResponse.redirect(new URL('/?error=no_credential', request.url));
+      console.error('No credential in form data');
+      return NextResponse.redirect(`${BASE_URL}/?error=no_credential`);
     }
     
     // Verify token with backend
@@ -24,7 +26,9 @@ export async function POST(request: NextRequest) {
     });
     
     if (!backendResponse.ok) {
-      return NextResponse.redirect(new URL('/?error=auth_failed', request.url));
+      const errorText = await backendResponse.text();
+      console.error('Backend auth failed:', errorText);
+      return NextResponse.redirect(`${BASE_URL}/?error=auth_failed`);
     }
     
     const data = await backendResponse.json();
@@ -33,8 +37,7 @@ export async function POST(request: NextRequest) {
     const setCookieHeader = backendResponse.headers.get('set-cookie');
     
     // Redirect to homepage with success
-    const redirectUrl = new URL('/?login=success', request.url);
-    const response = NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(`${BASE_URL}/?login=success`);
     
     // Forward cookies from backend
     if (setCookieHeader) {
@@ -62,6 +65,18 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Google callback error:', error);
-    return NextResponse.redirect(new URL('/?error=server_error', request.url));
+    return NextResponse.redirect(`${BASE_URL}/?error=server_error`);
   }
+}
+
+// Also handle GET for debugging
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const error = url.searchParams.get('error');
+  
+  if (error) {
+    return NextResponse.redirect(`${BASE_URL}/?error=${error}`);
+  }
+  
+  return NextResponse.redirect(`${BASE_URL}/?error=invalid_request`);
 }
