@@ -57,13 +57,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return true;
       } else {
-        // Backend says not authenticated
-        // But don't clear user if we have a kys_user cookie - trust the cookie
-        const cookieMatch = document.cookie.match(/kys_user=([^;]+)/);
-        if (!cookieMatch) {
-          setUser(null);
-          localStorage.removeItem('kys_user');
+        // Backend says not authenticated (401)
+        // Check if we have kys_user cookie - if yes, trust it and don't clear
+        if (typeof document !== 'undefined') {
+          const cookieMatch = document.cookie.match(/kys_user=([^;]+)/);
+          if (cookieMatch) {
+            // We have cookie - keep the user logged in
+            try {
+              const cookieUser = JSON.parse(decodeURIComponent(cookieMatch[1]));
+              setUser(cookieUser);
+              localStorage.setItem('kys_user', JSON.stringify(cookieUser));
+              return true;  // Treat as authenticated
+            } catch {
+              // Cookie parse failed, clear
+            }
+          }
         }
+        setUser(null);
+        localStorage.removeItem('kys_user');
         return false;
       }
     } catch (err) {
