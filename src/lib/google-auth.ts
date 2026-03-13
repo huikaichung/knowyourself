@@ -154,10 +154,12 @@ export async function initGoogleSignIn(
       return;
     }
 
+    const callbackUrl = `${window.location.origin}/api/auth/google/callback`;
+    
     window.google.accounts.id.initialize({
       client_id: config.google_client_id,
-      // Note: popup mode has COOP issues in some browsers
-      // To fix: add redirect URI in Google Cloud Console, then use ux_mode: 'redirect'
+      ux_mode: 'redirect',
+      login_uri: callbackUrl,
       callback: async (response: { credential: string }) => {
         try {
           if (!response.credential) {
