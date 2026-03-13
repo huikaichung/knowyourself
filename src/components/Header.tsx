@@ -8,7 +8,7 @@ import { LoginModal } from './LoginModal';
 import styles from './Header.module.css';
 
 export function Header() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout, refreshUser } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -100,7 +100,10 @@ export function Header() {
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onSuccess={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          refreshUser();
+          setShowLoginModal(false);
+        }}
       />
     </>
   );
