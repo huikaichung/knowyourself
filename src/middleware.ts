@@ -4,10 +4,11 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Check for auth cookie (set by client when logging in)
+  // Check for auth - accept either kys_user or kys_auth cookie
+  const userCookie = request.cookies.get('kys_user')?.value;
   const authCookie = request.cookies.get('kys_auth')?.value;
   
-  if (!authCookie) {
+  if (!userCookie && !authCookie) {
     // Redirect to login page with redirect parameter
     const url = request.nextUrl.clone();
     url.pathname = '/login';
