@@ -238,7 +238,12 @@ declare global {
         id: {
           initialize: (config: {
             client_id: string;
-            callback: (response: { credential: string }) => void;
+            callback?: (response: { credential: string }) => void;
+            ux_mode?: 'popup' | 'redirect';
+            login_uri?: string;
+            use_fedcm_for_prompt?: boolean;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
           }) => void;
           renderButton: (
             element: HTMLElement,
@@ -251,6 +256,7 @@ declare global {
             }
           ) => void;
           disableAutoSelect: () => void;
+          prompt: () => void;
         };
       };
     };
