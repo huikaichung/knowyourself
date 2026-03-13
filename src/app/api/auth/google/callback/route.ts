@@ -33,32 +33,50 @@ export async function POST(request: NextRequest) {
     
     const data = await backendResponse.json();
     
-    // Get cookies from backend response
-    const setCookieHeader = backendResponse.headers.get('set-cookie');
-    
-    // Redirect to homepage with success
+    // Create redirect response
     const response = NextResponse.redirect(`${BASE_URL}/?login=success`);
     
-    // Forward cookies from backend
-    if (setCookieHeader) {
-      // Parse and set each cookie
-      const cookies = setCookieHeader.split(',').map(c => c.trim());
-      for (const cookie of cookies) {
+    // Extract and forward Set-Cookie headers from backend
+    const setCookieHeaders = backendResponse.headers.getSetCookie?.() || [];
+    
+    // If getSetCookie is not available, try raw header
+    if (setCookieHeaders.length === 0) {
+      const rawSetCookie = backendResponse.headers.get('set-cookie');
+      if (rawSetCookie) {
+        // Split by comma but be careful with Expires dates
+        const cookies = rawSetCookie.split(/,(?=\s*[^;]+=[^;]+)/).map(c => c.trim());
+        for (const cookie of cookies) {
+          response.headers.append('Set-Cookie', cookie);
+        }
+      }
+    } else {
+      for (const cookie of setCookieHeaders) {
         response.headers.append('Set-Cookie', cookie);
       }
     }
     
-    // Store user info in a non-httpOnly cookie for frontend access
+    // Also set user info in a readable cookie for the frontend
     if (data.user) {
-      response.cookies.set('kys_user', JSON.stringify({
+      const userJson = JSON.stringify({
         id: data.user.id,
         email: data.user.email,
         name: data.user.name,
         avatar_url: data.user.avatar_url,
-      }), {
+      });
+      
+      response.cookies.set('kys_user', userJson, {
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         sameSite: 'lax',
+        secure: true,
+      });
+      
+      // Also set in localStorage via a flag
+      response.cookies.set('kys_auth', '1', {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+        sameSite: 'lax',
+        secure: true,
       });
     }
     
@@ -69,14 +87,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also handle GET for debugging
-export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const error = url.searchParams.get('error');
-  
-  if (error) {
-    return NextResponse.redirect(`${BASE_URL}/?error=${error}`);
-  }
-  
-  return NextResponse.redirect(`${BASE_URL}/?error=invalid_request`);
+// Handle GET for debugging
+export async function GET() {
+  return NextResponse.redirect(`${BASE_URL}/?error=invalid_method`);
 }

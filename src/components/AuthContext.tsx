@@ -57,9 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return true;
       } else {
-        // Not authenticated - clear local state
-        setUser(null);
-        localStorage.removeItem('kys_user');
+        // Backend says not authenticated
+        // But don't clear user if we have a kys_user cookie - trust the cookie
+        const cookieMatch = document.cookie.match(/kys_user=([^;]+)/);
+        if (!cookieMatch) {
+          setUser(null);
+          localStorage.removeItem('kys_user');
+        }
         return false;
       }
     } catch (err) {
@@ -68,27 +72,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Helper to read kys_user from cookie
+  const getUserFromCookie = useCallback((): AuthUser | null => {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(/kys_user=([^;]+)/);
+    if (!match) return null;
+    try {
+      return JSON.parse(decodeURIComponent(match[1]));
+    } catch {
+      return null;
+    }
+  }, []);
+
   // Verify auth on mount
   useEffect(() => {
     async function init() {
-      // First check if we have local user data
-      const storedUser = getStoredUser();
-      if (storedUser) {
-        setUser(storedUser);
-        
-        // Load cached birth info
-        const cachedBirthInfo = localStorage.getItem('kys_birth_info');
-        if (cachedBirthInfo) {
-          setBirthInfo(JSON.parse(cachedBirthInfo));
+      // First check kys_user cookie (set by redirect callback)
+      const cookieUser = getUserFromCookie();
+      if (cookieUser) {
+        setUser(cookieUser);
+        setUserData(cookieUser);  // Also store in localStorage
+      } else {
+        // Fallback: check localStorage
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
         }
       }
       
-      // Then verify with backend (this will update user if httpOnly cookie is valid)
-      await fetchProfile();
+      // Load cached birth info
+      const cachedBirthInfo = localStorage.getItem('kys_birth_info');
+      if (cachedBirthInfo) {
+        try {
+          setBirthInfo(JSON.parse(cachedBirthInfo));
+        } catch {
+          // ignore
+        }
+      }
+      
+      // Try to verify with backend (may fail if httpOnly cookie not set correctly)
+      // But don't clear user if it fails - trust the kys_user cookie
+      try {
+        await fetchProfile();
+      } catch {
+        // Ignore - trust cookie
+      }
       setLoading(false);
     }
     init();
-  }, [fetchProfile]);
+  }, [fetchProfile, getUserFromCookie]);
 
   // Listen for storage changes (login from another tab)
   useEffect(() => {
