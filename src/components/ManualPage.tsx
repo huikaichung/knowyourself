@@ -131,7 +131,7 @@ export function ManualPage({ manualId }: Props) {
         }
         
         // Save to user profile via API
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://selfkit-backend-129518505568.asia-northeast1.run.app/api/v1';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
         await fetch(`${API_URL}/auth/profile`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
