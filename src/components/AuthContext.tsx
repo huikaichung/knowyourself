@@ -121,12 +121,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      // Try to verify with backend (may fail if httpOnly cookie not set correctly)
-      // But don't clear user if it fails - trust the kys_user cookie
-      try {
-        await fetchProfile();
-      } catch {
-        // Ignore - trust cookie
+      // If we have kys_user cookie, skip backend verification
+      // httpOnly cookies may not work cross-subdomain
+      if (!cookieUser) {
+        // No cookie, try to verify with backend
+        try {
+          await fetchProfile();
+        } catch {
+          // Ignore errors
+        }
       }
       setLoading(false);
     }
