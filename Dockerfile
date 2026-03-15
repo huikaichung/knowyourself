@@ -9,6 +9,10 @@ RUN npm ci
 
 # Copy source and build
 COPY . .
+
+# Set build-time environment variable for Next.js
+ENV NEXT_PUBLIC_API_URL=https://api.selfkit.art/api/v1
+
 RUN npm run build
 
 # Production stage - use Node.js for standalone Next.js
