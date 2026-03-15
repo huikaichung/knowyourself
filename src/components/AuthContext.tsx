@@ -95,46 +95,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Verify auth on mount
+  // Verify auth on mount (client-side only)
   useEffect(() => {
     async function init() {
-      // First check kys_user cookie (set by redirect callback)
-      const cookieUser = getUserFromCookie();
-      if (cookieUser) {
-        setUser(cookieUser);
-        setUserData(cookieUser);  // Also store in localStorage
-      } else {
-        // Fallback: check localStorage
-        const storedUser = getStoredUser();
-        if (storedUser) {
-          setUser(storedUser);
+      // Check for kys_user cookie (set by redirect callback)
+      // This runs client-side so document is available
+      const cookieMatch = document.cookie.match(/kys_user=([^;]+)/);
+      if (cookieMatch) {
+        try {
+          const cookieUser = JSON.parse(decodeURIComponent(cookieMatch[1]));
+          setUser(cookieUser);
+          localStorage.setItem('kys_user', JSON.stringify(cookieUser));
+          setLoading(false);
+          return; // Success - no need for backend verification
+        } catch {
+          // Cookie parse failed, continue to other methods
         }
       }
       
-      // Load cached birth info
-      const cachedBirthInfo = localStorage.getItem('kys_birth_info');
-      if (cachedBirthInfo) {
-        try {
-          setBirthInfo(JSON.parse(cachedBirthInfo));
-        } catch {
-          // ignore
-        }
+      // Fallback: check localStorage
+      const storedUser = getStoredUser();
+      if (storedUser) {
+        setUser(storedUser);
+        setLoading(false);
+        return;
       }
       
-      // If we have kys_user cookie, skip backend verification
-      // httpOnly cookies may not work cross-subdomain
-      if (!cookieUser) {
-        // No cookie, try to verify with backend
-        try {
-          await fetchProfile();
-        } catch {
-          // Ignore errors
-        }
+      // No cookie or localStorage, try backend
+      try {
+        await fetchProfile();
+      } catch {
+        // Ignore errors
       }
       setLoading(false);
     }
     init();
-  }, [fetchProfile, getUserFromCookie]);
+  }, [fetchProfile]);
 
   // Listen for storage changes (login from another tab)
   useEffect(() => {
