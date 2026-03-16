@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthContext';
 import Link from 'next/link';
 import styles from '../destiny.module.css';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
 
 interface HumanDesignData {
   type: string;
@@ -43,7 +43,7 @@ export default function HumanDesignPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/manual/generate`, {
+      const res = await fetch(`${API_BASE}/manual/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
