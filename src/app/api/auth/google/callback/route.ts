@@ -56,26 +56,31 @@ export async function POST(request: NextRequest) {
     // Clear the return_url cookie
     response.cookies.set('kys_return_url', '', { path: '/', maxAge: 0 });
     
-    // Extract and forward Set-Cookie headers from backend
-    const setCookieHeaders = backendResponse.headers.getSetCookie?.() || [];
-    
-    // If getSetCookie is not available, try raw header
-    if (setCookieHeaders.length === 0) {
-      const rawSetCookie = backendResponse.headers.get('set-cookie');
-      if (rawSetCookie) {
-        // Split by comma but be careful with Expires dates
-        const cookies = rawSetCookie.split(/,(?=\s*[^;]+=[^;]+)/).map(c => c.trim());
-        for (const cookie of cookies) {
-          response.headers.append('Set-Cookie', cookie);
-        }
-      }
-    } else {
-      for (const cookie of setCookieHeaders) {
-        response.headers.append('Set-Cookie', cookie);
-      }
+    // Set auth cookies from backend response tokens
+    // Backend returns: { user: {...}, tokens: { access_token, refresh_token, expires_in } }
+    if (data.tokens) {
+      // Access token - httpOnly, cross-subdomain
+      response.cookies.set('kys_access_token', data.tokens.access_token, {
+        path: '/',
+        maxAge: data.tokens.expires_in || 900, // 15 min default
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none', // Required for cross-origin API calls
+        domain: '.selfkit.art',
+      });
+      
+      // Refresh token - httpOnly, only for auth endpoints
+      response.cookies.set('kys_refresh_token', data.tokens.refresh_token, {
+        path: '/api/v1/auth',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        domain: '.selfkit.art',
+      });
     }
     
-    // Also set user info in a readable cookie for the frontend
+    // Set user info in a readable cookie for the frontend
     if (data.user) {
       const userJson = JSON.stringify({
         id: data.user.id,
@@ -89,14 +94,16 @@ export async function POST(request: NextRequest) {
         maxAge: 60 * 60 * 24 * 7, // 7 days
         sameSite: 'lax',
         secure: true,
+        domain: '.selfkit.art',
       });
       
-      // Also set in localStorage via a flag
+      // Auth flag for quick checks
       response.cookies.set('kys_auth', '1', {
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
         sameSite: 'lax',
         secure: true,
+        domain: '.selfkit.art',
       });
     }
     
