@@ -33,8 +33,28 @@ export async function POST(request: NextRequest) {
     
     const data = await backendResponse.json();
     
+    // Get return URL from cookie (set before OAuth redirect)
+    const returnUrlCookie = request.cookies.get('kys_return_url')?.value;
+    let redirectUrl = `${BASE_URL}/dashboard`;  // Default to dashboard after login
+    
+    if (returnUrlCookie) {
+      try {
+        const decodedUrl = decodeURIComponent(returnUrlCookie);
+        // Validate it's from our domain
+        const url = new URL(decodedUrl);
+        if (url.origin === BASE_URL || url.hostname === 'localhost') {
+          redirectUrl = decodedUrl;
+        }
+      } catch {
+        // Invalid URL, use default
+      }
+    }
+    
     // Create redirect response
-    const response = NextResponse.redirect(`${BASE_URL}/?login=success`);
+    const response = NextResponse.redirect(redirectUrl);
+    
+    // Clear the return_url cookie
+    response.cookies.set('kys_return_url', '', { path: '/', maxAge: 0 });
     
     // Extract and forward Set-Cookie headers from backend
     const setCookieHeaders = backendResponse.headers.getSetCookie?.() || [];

@@ -156,6 +156,9 @@ export async function initGoogleSignIn(
 
     const callbackUrl = `${window.location.origin}/api/auth/google/callback`;
     
+    // Store current URL for redirect after OAuth (cookie so server can read it)
+    document.cookie = `kys_return_url=${encodeURIComponent(window.location.href)}; path=/; max-age=300; SameSite=Lax`;
+    
     window.google.accounts.id.initialize({
       client_id: config.google_client_id,
       ux_mode: 'redirect',
