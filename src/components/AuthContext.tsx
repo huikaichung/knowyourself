@@ -57,24 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return true;
       } else {
-        // Backend says not authenticated (401)
-        // Check if we have kys_user cookie - if yes, trust it and don't clear
-        if (typeof document !== 'undefined') {
-          const cookieMatch = document.cookie.match(/kys_user=([^;]+)/);
-          if (cookieMatch) {
-            // We have cookie - keep the user logged in
-            try {
-              const cookieUser = JSON.parse(decodeURIComponent(cookieMatch[1]));
-              setUser(cookieUser);
-              localStorage.setItem('kys_user', JSON.stringify(cookieUser));
-              return true;  // Treat as authenticated
-            } catch {
-              // Cookie parse failed, clear
-            }
-          }
-        }
-        setUser(null);
-        localStorage.removeItem('kys_user');
+        // Backend says not authenticated (401) - user is NOT logged in
         return false;
       }
     } catch (err) {
@@ -98,35 +81,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Verify auth on mount (client-side only)
   useEffect(() => {
     async function init() {
-      // Check for kys_user cookie (set by redirect callback)
-      // This runs client-side so document is available
+      // Quick UI: Check for kys_user cookie for immediate display
       const cookieMatch = document.cookie.match(/kys_user=([^;]+)/);
       if (cookieMatch) {
         try {
           const cookieUser = JSON.parse(decodeURIComponent(cookieMatch[1]));
-          setUser(cookieUser);
-          localStorage.setItem('kys_user', JSON.stringify(cookieUser));
-          setLoading(false);
-          return; // Success - no need for backend verification
+          setUser(cookieUser);  // Show UI immediately
         } catch {
-          // Cookie parse failed, continue to other methods
+          // Cookie parse failed
+        }
+      } else {
+        // Fallback: check localStorage for quick UI
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
         }
       }
       
-      // Fallback: check localStorage
-      const storedUser = getStoredUser();
-      if (storedUser) {
-        setUser(storedUser);
-        setLoading(false);
-        return;
+      // Always verify with backend to ensure auth is valid
+      const isValid = await fetchProfile();
+      
+      if (!isValid) {
+        // Backend says not authenticated - clear everything
+        setUser(null);
+        setBirthInfo(null);
+        localStorage.removeItem('kys_user');
+        localStorage.removeItem('kys_birth_info');
+        // Clear cookies
+        document.cookie = 'kys_user=; path=/; domain=.selfkit.art; max-age=0';
+        document.cookie = 'kys_auth=; path=/; domain=.selfkit.art; max-age=0';
+        document.cookie = 'kys_user=; path=/; max-age=0';
+        document.cookie = 'kys_auth=; path=/; max-age=0';
       }
       
-      // No cookie or localStorage, try backend
-      try {
-        await fetchProfile();
-      } catch {
-        // Ignore errors
-      }
       setLoading(false);
     }
     init();

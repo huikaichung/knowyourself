@@ -42,6 +42,13 @@ export async function clearAuth(): Promise<void> {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(USER_KEY);
   
+  // Clear frontend-readable cookies
+  document.cookie = 'kys_user=; path=/; domain=.selfkit.art; max-age=0';
+  document.cookie = 'kys_auth=; path=/; domain=.selfkit.art; max-age=0';
+  // Also try without domain (for localhost)
+  document.cookie = 'kys_user=; path=/; max-age=0';
+  document.cookie = 'kys_auth=; path=/; max-age=0';
+  
   // Call backend to clear httpOnly cookies
   try {
     await fetch(`${API_URL}/auth/logout`, {
