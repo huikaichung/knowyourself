@@ -8,7 +8,7 @@
 interface Planet {
   name: string;
   sign: string;
-  degree: string;
+  degree: string | number;
   house: number;
   retrograde?: boolean;
   interpretation?: string;
@@ -100,7 +100,9 @@ function getSignIndex(sign: string): number {
   return 0;
 }
 
-function parseDegree(degreeStr: string): number {
+function parseDegree(degreeStr: string | number | undefined): number {
+  if (typeof degreeStr === 'number') return degreeStr;
+  if (!degreeStr) return 0;
   // Parse "22°" or "22" or "22度"
   const match = degreeStr.match(/(\d+)/);
   return match ? parseInt(match[1], 10) : 0;

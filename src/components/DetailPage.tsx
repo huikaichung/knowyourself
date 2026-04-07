@@ -367,7 +367,7 @@ function WesternRenderInner({ asc, mc, planets, aspects, stelliums, chartPattern
   const [selectedDetail, setSelectedDetail] = useState<ChartDetail | null>(null);
 
   // Handle planet click - show detail drawer
-  const handlePlanetClick = useCallback((planet: { name: string; sign: string; degree: string; house: number; retrograde?: boolean; interpretation?: string }) => {
+  const handlePlanetClick = useCallback((planet: { name: string; sign: string; degree: string | number; house: number; retrograde?: boolean; interpretation?: string }) => {
     const planetKey = planet.name.toLowerCase().replace('太陽', 'sun').replace('月亮', 'moon')
       .replace('水星', 'mercury').replace('金星', 'venus').replace('火星', 'mars')
       .replace('木星', 'jupiter').replace('土星', 'saturn').replace('天王星', 'uranus')
