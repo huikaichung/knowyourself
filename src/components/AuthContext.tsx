@@ -33,12 +33,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Try to refresh the access token using the httpOnly refresh token cookie
+  const tryRefreshToken = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
   // Fetch full profile from API using httpOnly cookie
   const fetchProfile = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/auth/me`, {
+      let res = await fetch(`${API_URL}/auth/me`, {
         credentials: 'include',  // Send httpOnly cookies
       });
+
+      // If 401, attempt a token refresh and retry once
+      if (res.status === 401) {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+          res = await fetch(`${API_URL}/auth/me`, {
+            credentials: 'include',
+          });
+        }
+      }
+
       if (res.ok) {
         const data = await res.json();
         // Update user data
@@ -50,21 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUser(userData);
         setUserData(userData);
-        
+
         if (data.birth_info) {
           setBirthInfo(data.birth_info);
           localStorage.setItem('kys_birth_info', JSON.stringify(data.birth_info));
         }
         return true;
       } else {
-        // Backend says not authenticated (401) - user is NOT logged in
         return false;
       }
     } catch (err) {
       console.error('Failed to fetch profile:', err);
       return false;
     }
-  }, []);
+  }, [tryRefreshToken]);
 
   // Helper to read kys_user from cookie
   const getUserFromCookie = useCallback((): AuthUser | null => {
@@ -98,22 +121,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      // Always verify with backend to ensure auth is valid
+      // Refresh profile from backend in the background.
+      // IMPORTANT: do NOT tear down auth on failure here. A transient /auth/me
+      // failure (cross-origin cookie timing, network blip, etc.) used to clear
+      // the user state and bounce the user straight back to /login, creating
+      // a redirect loop right after a successful sign-in. We trust the cookie
+      // for the initial render; real invalidation will happen via explicit
+      // logout, or when an actual data request returns 401.
+      const hadOptimisticUser =
+        !!cookieMatch || !!getStoredUser();
+
       const isValid = await fetchProfile();
-      
-      if (!isValid) {
-        // Backend says not authenticated - clear everything
+
+      if (!isValid && !hadOptimisticUser) {
+        // No cookie/local user AND backend says no — definitely logged out.
         setUser(null);
         setBirthInfo(null);
         localStorage.removeItem('kys_user');
         localStorage.removeItem('kys_birth_info');
-        // Clear cookies
-        document.cookie = 'kys_user=; path=/; domain=.selfkit.art; max-age=0';
-        document.cookie = 'kys_auth=; path=/; domain=.selfkit.art; max-age=0';
-        document.cookie = 'kys_user=; path=/; max-age=0';
-        document.cookie = 'kys_auth=; path=/; max-age=0';
       }
-      
+
       setLoading(false);
     }
     init();

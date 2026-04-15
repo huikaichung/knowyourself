@@ -51,7 +51,14 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      // Double-check: if the auth cookie still exists, the user just logged in
+      // and AuthContext hasn't synced yet — don't redirect.
+      const hasAuthCookie =
+        document.cookie.includes('kys_auth=') ||
+        document.cookie.includes('kys_user=');
+      if (!hasAuthCookie) {
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      }
     }
   }, [user, loading, router, pathname]);
 
