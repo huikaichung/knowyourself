@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
+import { authFetch } from '@/lib/api';
 import Link from 'next/link';
 import styles from '../destiny.module.css';
 
@@ -50,7 +51,7 @@ export default function BaziPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/manual/generate`, {
+      const res = await authFetch(`${API_BASE}/manual/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

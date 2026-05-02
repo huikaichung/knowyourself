@@ -4,6 +4,23 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
 
+// Wraps fetch with auto-refresh on 401: tries /auth/refresh once, then retries the
+// original request. Always sends httpOnly cookies. Use this for any authenticated
+// or auth-eligible API call so a short access TTL stays invisible to users.
+export async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const opts: RequestInit = { ...init, credentials: 'include' };
+  let res = await fetch(input, opts);
+  if (res.status !== 401) return res;
+
+  const refreshed = await fetch(`${API_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!refreshed.ok) return res;
+
+  return fetch(input, opts);
+}
+
 export interface BirthInfo {
   birth_date: string;
   birth_time?: string;
@@ -159,7 +176,7 @@ export interface UserManual {
  * Generate User Manual
  */
 export async function generateManual(request: GenerateManualRequest): Promise<UserManual> {
-  const response = await fetch(`${API_URL}/manual/generate`, {
+  const response = await authFetch(`${API_URL}/manual/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -179,7 +196,7 @@ export async function generateManual(request: GenerateManualRequest): Promise<Us
  * Get Manual by ID
  */
 export async function getManual(manualId: string): Promise<UserManual> {
-  const response = await fetch(`${API_URL}/manual/${manualId}`);
+  const response = await authFetch(`${API_URL}/manual/${manualId}`);
 
   if (!response.ok) {
     throw new Error('找不到使用說明書');
@@ -199,9 +216,7 @@ export interface DetailResponse {
  * Get detailed reading for a specific system (requires auth via httpOnly cookie)
  */
 export async function getManualDetail(manualId: string, system: DetailSystem): Promise<DetailResponse> {
-  const response = await fetch(`${API_URL}/manual/${manualId}/detail/${system}`, {
-    credentials: 'include',  // Send httpOnly cookies
-  });
+  const response = await authFetch(`${API_URL}/manual/${manualId}/detail/${system}`);
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -222,11 +237,10 @@ export async function getManualDetail(manualId: string, system: DetailSystem): P
  * Save a manual to user's collection (uses httpOnly cookie for auth)
  */
 export async function saveManual(manualId: string): Promise<{ success: boolean; doc_id: string }> {
-  const response = await fetch(`${API_URL}/manual/save`, {
+  const response = await authFetch(`${API_URL}/manual/save`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ manual_id: manualId }),
-    credentials: 'include',  // Send httpOnly cookies
   });
 
   if (!response.ok) {
@@ -248,7 +262,7 @@ export interface SavedManualSummary {
  * List user's saved manuals
  */
 export async function listSavedManuals(userId: string): Promise<{ manuals: SavedManualSummary[] }> {
-  const response = await fetch(`${API_URL}/manual/user/${userId}`);
+  const response = await authFetch(`${API_URL}/manual/user/${userId}`);
 
   if (!response.ok) {
     throw new Error('載入失敗');
@@ -261,7 +275,7 @@ export async function listSavedManuals(userId: string): Promise<{ manuals: Saved
  * Get a saved manual
  */
 export async function getSavedManual(userId: string, manualId: string): Promise<UserManual> {
-  const response = await fetch(`${API_URL}/manual/user/${userId}/${manualId}`);
+  const response = await authFetch(`${API_URL}/manual/user/${userId}/${manualId}`);
 
   if (!response.ok) {
     throw new Error('找不到已儲存的說明書');
@@ -274,7 +288,7 @@ export async function getSavedManual(userId: string, manualId: string): Promise<
  * Delete a saved manual
  */
 export async function deleteSavedManual(userId: string, manualId: string): Promise<{ success: boolean }> {
-  const response = await fetch(`${API_URL}/manual/user/${userId}/${manualId}`, {
+  const response = await authFetch(`${API_URL}/manual/user/${userId}/${manualId}`, {
     method: 'DELETE',
   });
 
@@ -326,7 +340,7 @@ export interface ChatResponse {
  * Send a chat message (non-streaming)
  */
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
-  const response = await fetch(`${API_URL}/chat`, {
+  const response = await authFetch(`${API_URL}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -350,7 +364,7 @@ export async function sendChatMessageStream(
   onDone: (conversationId: string) => void,
   onError: (error: string) => void
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/chat/stream`, {
+  const response = await authFetch(`${API_URL}/chat/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -403,7 +417,7 @@ export async function sendChatMessageStream(
  * Clear chat conversation
  */
 export async function clearChatConversation(conversationId: string): Promise<void> {
-  await fetch(`${API_URL}/chat/${conversationId}`, {
+  await authFetch(`${API_URL}/chat/${conversationId}`, {
     method: 'DELETE',
   });
 }

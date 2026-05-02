@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthContext';
+import { authFetch } from '@/lib/api';
 import styles from './page.module.css';
 
 interface DataSource {
@@ -79,7 +80,7 @@ export default function ConsultPage() {
 
       // 調用真正的 Chat API
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
-      const response = await fetch(`${API_URL}/chat`, {
+      const response = await authFetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getManual, saveManual, type UserManual, type BirthInfo } from '@/lib/api';
+import { getManual, saveManual, authFetch, type UserManual, type BirthInfo } from '@/lib/api';
 import { RadarChart } from './RadarChart';
 import { useAuth } from './AuthContext';
 import { LoginModal } from './LoginModal';
@@ -132,10 +132,9 @@ export function ManualPage({ manualId }: Props) {
         
         // Save to user profile via API
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
-        await fetch(`${API_URL}/auth/profile`, {
+        await authFetch(`${API_URL}/auth/profile`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ birth_info: birthInfo }),
         });
       } catch (err) {
