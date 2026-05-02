@@ -74,13 +74,6 @@ jobs:
           terraform init
           terraform apply -auto-approve -var "image_tag=${{ github.sha }}"
 
-      - name: Deploy new revision
-        run: |
-          gcloud run services update knowyourself \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --image="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-
       - name: Smoke test
         run: |
           sleep 10
