@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import styles from './HomePage.module.css';
 
@@ -16,12 +17,25 @@ const CHAPTERS = [
 
 export function HomePage() {
   const [loaded, setLoaded] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, hasBirthInfo, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 50);
     return () => clearTimeout(t);
   }, []);
+
+  // Logged in + already has birth info → skip the intro and go straight to the dashboard
+  useEffect(() => {
+    if (!loading && isAuthenticated && hasBirthInfo) {
+      router.replace('/dashboard');
+    }
+  }, [loading, isAuthenticated, hasBirthInfo, router]);
+
+  // Render nothing during the redirect to avoid a flash of the marketing copy
+  if (!loading && isAuthenticated && hasBirthInfo) {
+    return null;
+  }
 
   return (
     <div className={styles.page}>
