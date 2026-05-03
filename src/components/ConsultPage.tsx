@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { generateManual } from '@/lib/api';
+import { generateManual, type BirthInfo } from '@/lib/api';
+import { useAuth } from './AuthContext';
 import { CitySelector, City } from './CitySelector';
 import styles from './ConsultPage.module.css';
 
@@ -15,6 +16,7 @@ const LOADING_PHASES = [
 
 export function ConsultPage() {
   const router = useRouter();
+  const { birthInfo: authBirthInfo, loading: authLoading } = useAuth();
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -23,6 +25,7 @@ export function ConsultPage() {
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -47,52 +50,51 @@ export function ConsultPage() {
     };
   }, [isLoading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    const errors: string[] = [];
-    
-    if (!birthDate) {
-      errors.push('請填寫出生日期');
-    } else {
-      // Validate date format and range
-      const date = new Date(birthDate);
-      const today = new Date();
-      const minDate = new Date('1900-01-01');
-      if (isNaN(date.getTime())) {
-        errors.push('出生日期格式不正確');
-      } else if (date > today) {
-        errors.push('出生日期不能是未來');
-      } else if (date < minDate) {
-        errors.push('出生日期太早了');
-      }
-    }
-
-    if (!birthTime) {
-      errors.push('請填寫出生時間');
-    }
-
-    if (!selectedCity) {
-      errors.push('請選擇出生地點');
-    }
-
-    if (!gender) {
-      errors.push('請選擇性別');
-    }
-    
-    if (errors.length > 0) {
-      setError(errors.join('、'));
-      return;
-    }
-
+  const runGenerate = async (info: BirthInfo) => {
     setError(null);
     setIsLoading(true);
     setLoadingPhase(0);
     setProgress(0);
 
-    // Build birth info object
-    const birthInfo = {
+    // Mirror to localStorage so the post-login flow can recover it
+    localStorage.setItem('kys_birth_info', JSON.stringify(info));
+
+    try {
+      const result = await generateManual({ birth_info: info });
+      setProgress(100);
+      setTimeout(() => router.push(`/manual/${result.id}`), 400);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成失敗，請稍後再試');
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const errors: string[] = [];
+
+    if (!birthDate) {
+      errors.push('請填寫出生日期');
+    } else {
+      const date = new Date(birthDate);
+      const today = new Date();
+      const minDate = new Date('1900-01-01');
+      if (isNaN(date.getTime())) errors.push('出生日期格式不正確');
+      else if (date > today) errors.push('出生日期不能是未來');
+      else if (date < minDate) errors.push('出生日期太早了');
+    }
+
+    if (!birthTime) errors.push('請填寫出生時間');
+    if (!selectedCity) errors.push('請選擇出生地點');
+    if (!gender) errors.push('請選擇性別');
+
+    if (errors.length > 0) {
+      setError(errors.join('、'));
+      return;
+    }
+
+    await runGenerate({
       birth_date: birthDate,
       birth_time: birthTime || undefined,
       birth_place: selectedCity?.name || undefined,
@@ -100,24 +102,17 @@ export function ConsultPage() {
       longitude: selectedCity?.longitude,
       timezone: selectedCity?.timezone,
       gender: gender || undefined,
-    };
-    
-    // Store in localStorage for later retrieval after login
-    localStorage.setItem('kys_birth_info', JSON.stringify(birthInfo));
-
-    try {
-      const result = await generateManual({
-        birth_info: birthInfo,
-      });
-      setProgress(100);
-      setTimeout(() => {
-        router.push(`/manual/${result.id}`);
-      }, 400);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失敗，請稍後再試');
-      setIsLoading(false);
-    }
+    });
   };
+
+  // Returning users already have birth info on file - skip the form, go straight to generation.
+  // The form is only shown to first-time visitors or if auto-generation fails.
+  useEffect(() => {
+    if (authLoading || autoSubmittedRef.current || !authBirthInfo?.birth_date) return;
+    autoSubmittedRef.current = true;
+    runGenerate(authBirthInfo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, authBirthInfo]);
 
   if (isLoading) {
     return (
