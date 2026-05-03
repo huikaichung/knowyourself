@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
+import { listSavedManuals } from '@/lib/api';
 import styles from './HomePage.module.css';
 
 const CHAPTERS = [
@@ -17,7 +18,8 @@ const CHAPTERS = [
 
 export function HomePage() {
   const [loaded, setLoaded] = useState(false);
-  const { isAuthenticated, hasBirthInfo, loading } = useAuth();
+  const [redirecting, setRedirecting] = useState(false);
+  const { user, isAuthenticated, hasBirthInfo, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -25,15 +27,29 @@ export function HomePage() {
     return () => clearTimeout(t);
   }, []);
 
-  // Logged in + already has birth info → skip the intro and go straight to the dashboard
+  // Logged in + already has birth info → send them to their saved manual (or /consult to make one).
+  // Don't ask returning users to re-enter birth info just to view the report they already have.
   useEffect(() => {
-    if (!loading && isAuthenticated && hasBirthInfo) {
-      router.replace('/dashboard');
-    }
-  }, [loading, isAuthenticated, hasBirthInfo, router]);
+    if (loading || !isAuthenticated || !hasBirthInfo || !user || redirecting) return;
+
+    setRedirecting(true);
+    (async () => {
+      try {
+        const { manuals } = await listSavedManuals(user.id);
+        if (manuals.length > 0) {
+          router.replace(`/manual/${manuals[0].id}`);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to list saved manuals:', err);
+      }
+      // No saved manual yet — go to consult so they can generate one (form will pre-fill from context).
+      router.replace('/consult');
+    })();
+  }, [loading, isAuthenticated, hasBirthInfo, user, redirecting, router]);
 
   // Render nothing during the redirect to avoid a flash of the marketing copy
-  if (!loading && isAuthenticated && hasBirthInfo) {
+  if (redirecting || (!loading && isAuthenticated && hasBirthInfo)) {
     return null;
   }
 
