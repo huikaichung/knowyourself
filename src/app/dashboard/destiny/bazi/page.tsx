@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
-import { authFetch } from '@/lib/api';
+import { getDetailByBirth } from '@/lib/api';
 import Link from 'next/link';
 import styles from '../destiny.module.css';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
 
 interface Pillar {
   stem: string;
@@ -46,50 +44,35 @@ export default function BaziPage() {
 
   const fetchData = useCallback(async () => {
     if (!birthInfo?.birth_date) return;
-
     setDataLoading(true);
     setError(null);
-
     try {
-      const res = await authFetch(`${API_BASE}/manual/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          birth_info: {
-            birth_date: birthInfo.birth_date,
-            birth_time: birthInfo.birth_time,
-            birth_place: birthInfo.birth_place,
-            latitude: birthInfo.latitude,
-            longitude: birthInfo.longitude,
-            timezone: birthInfo.timezone,
-            gender: birthInfo.gender,
-          },
-        }),
+      const result = await getDetailByBirth('bazi', birthInfo);
+      const d = result.data as Record<string, unknown>;
+      const dm = (d.day_master ?? {}) as { stem?: string; element?: string; strength?: string };
+      const ug = (d.useful_god ?? {}) as { element?: string; reasoning?: string };
+      setData({
+        pillars: (d.pillars ?? {}) as BaziData['pillars'],
+        day_master: `${dm.stem ?? ''}${dm.element ?? ''}`,
+        day_master_strength: dm.strength ?? '',
+        useful_god: ug.element ?? '',
+        useful_god_reasoning: ug.reasoning ?? '',
+        five_elements: (d.five_elements ?? {}) as Record<string, number>,
+        calculation_method: d.calculation_method as string | undefined,
       });
-
-      if (!res.ok) throw new Error('Failed to fetch');
-
-      const result = await res.json();
-      const bazi = result.deep_data?.chinese?.bazi;
-      
-      if (bazi) {
-        setData(bazi);
-      } else {
-        setError('無法取得八字資料');
-      }
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('載入失敗，請稍後再試');
+      setError(err instanceof Error ? err.message : '載入失敗');
     } finally {
       setDataLoading(false);
     }
   }, [birthInfo]);
 
   useEffect(() => {
-    if (hasBirthInfo && !data && !dataLoading) {
+    if (hasBirthInfo && !data && !dataLoading && !error) {
       fetchData();
     }
-  }, [hasBirthInfo, data, dataLoading, fetchData]);
+  }, [hasBirthInfo, data, dataLoading, error, fetchData]);
 
   if (authLoading) {
     return <div className={styles.loading}>載入中...</div>;

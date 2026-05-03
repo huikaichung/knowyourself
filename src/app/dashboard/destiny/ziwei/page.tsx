@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
-import { authFetch } from '@/lib/api';
+import { getDetailByBirth } from '@/lib/api';
 import Link from 'next/link';
 import styles from '../destiny.module.css';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
 
 interface Palace {
   name: string;
@@ -42,50 +40,34 @@ export default function ZiweiPage() {
 
   const fetchData = useCallback(async () => {
     if (!birthInfo?.birth_date) return;
-
     setDataLoading(true);
     setError(null);
-
     try {
-      const res = await authFetch(`${API_BASE}/manual/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          birth_info: {
-            birth_date: birthInfo.birth_date,
-            birth_time: birthInfo.birth_time,
-            birth_place: birthInfo.birth_place,
-            latitude: birthInfo.latitude,
-            longitude: birthInfo.longitude,
-            timezone: birthInfo.timezone,
-            gender: birthInfo.gender,
-          },
-        }),
+      const result = await getDetailByBirth('ziwei', birthInfo);
+      const d = result.data as Record<string, unknown>;
+      const chart = (d.chart ?? d) as Record<string, unknown>;
+      setData({
+        lunar_date: (chart.lunar_date ?? '') as string,
+        year_pillar: (chart.year_pillar ?? '') as string,
+        wu_xing_ju: (chart.wu_xing_ju ?? '') as string,
+        ming_gong_branch: (chart.ming_gong ?? chart.ming_gong_branch ?? '') as string,
+        shen_gong_branch: (chart.shen_gong ?? chart.shen_gong_branch ?? '') as string,
+        palaces: (chart.palaces ?? []) as Palace[],
+        calculation_method: chart.calculation_method as string | undefined,
       });
-
-      if (!res.ok) throw new Error('Failed to fetch');
-
-      const result = await res.json();
-      const ziwei = result.deep_data?.chinese?.ziwei;
-      
-      if (ziwei) {
-        setData(ziwei);
-      } else {
-        setError('無法取得紫微斗數資料');
-      }
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('載入失敗，請稍後再試');
+      setError(err instanceof Error ? err.message : '載入失敗');
     } finally {
       setDataLoading(false);
     }
   }, [birthInfo]);
 
   useEffect(() => {
-    if (hasBirthInfo && !data && !dataLoading) {
+    if (hasBirthInfo && !data && !dataLoading && !error) {
       fetchData();
     }
-  }, [hasBirthInfo, data, dataLoading, fetchData]);
+  }, [hasBirthInfo, data, dataLoading, error, fetchData]);
 
   if (authLoading) {
     return <div className={styles.loading}>載入中...</div>;

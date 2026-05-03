@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
-import { authFetch } from '@/lib/api';
+import { getDetailByBirth } from '@/lib/api';
 import Link from 'next/link';
 import styles from '../destiny.module.css';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
 
 interface WesternData {
   sun_sign: string;
@@ -53,56 +51,41 @@ export default function WesternPage() {
     }
   }, [user, authLoading, router]);
 
-  // Fetch Western chart data
   const fetchWesternData = useCallback(async () => {
     if (!birthInfo?.birth_date) return;
-
     setDataLoading(true);
     setError(null);
-
     try {
-      const res = await authFetch(`${API_BASE}/manual/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          birth_info: {
-            birth_date: birthInfo.birth_date,
-            birth_time: birthInfo.birth_time,
-            birth_place: birthInfo.birth_place,
-            latitude: birthInfo.latitude,
-            longitude: birthInfo.longitude,
-            timezone: birthInfo.timezone,
-            gender: birthInfo.gender,
-          },
-        }),
+      const result = await getDetailByBirth('western', birthInfo);
+      const d = result.data as Record<string, unknown>;
+      const planets = (d.planets ?? []) as WesternData['planets'];
+      const sunPlanet = planets.find((p) => p.name === 'Sun' || p.name === '太陽');
+      const moonPlanet = planets.find((p) => p.name === 'Moon' || p.name === '月亮');
+      const asc = (d.ascendant ?? {}) as { sign?: string; degree?: number };
+      setData({
+        sun_sign: sunPlanet?.sign ?? '',
+        moon_sign: moonPlanet?.sign ?? '',
+        rising_sign: asc.sign ?? '',
+        sun_degree: sunPlanet?.degree,
+        moon_degree: moonPlanet?.degree,
+        asc_degree: asc.degree,
+        planets,
+        aspects: (d.aspects ?? []) as WesternData['aspects'],
+        calculation_method: d.calculation_method as string | undefined,
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch chart data');
-      }
-
-      const result = await res.json();
-      const western = result.deep_data?.western;
-      
-      if (western) {
-        setData(western);
-      } else {
-        setError('無法取得星盤資料');
-      }
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('載入失敗，請稍後再試');
+      setError(err instanceof Error ? err.message : '載入失敗');
     } finally {
       setDataLoading(false);
     }
   }, [birthInfo]);
 
-  // Auto-fetch when birthInfo is available
   useEffect(() => {
-    if (hasBirthInfo && !data && !dataLoading) {
+    if (hasBirthInfo && !data && !dataLoading && !error) {
       fetchWesternData();
     }
-  }, [hasBirthInfo, data, dataLoading, fetchWesternData]);
+  }, [hasBirthInfo, data, dataLoading, error, fetchWesternData]);
 
   if (authLoading) {
     return <div className={styles.loading}>載入中...</div>;

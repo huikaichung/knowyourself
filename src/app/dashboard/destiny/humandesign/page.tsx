@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
-import { authFetch } from '@/lib/api';
+import { getDetailByBirth } from '@/lib/api';
 import Link from 'next/link';
 import styles from '../destiny.module.css';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.selfkit.art/api/v1';
 
 interface HumanDesignData {
   type: string;
@@ -39,50 +37,38 @@ export default function HumanDesignPage() {
 
   const fetchData = useCallback(async () => {
     if (!birthInfo?.birth_date || !birthInfo?.birth_time) return;
-
     setDataLoading(true);
     setError(null);
-
     try {
-      const res = await authFetch(`${API_BASE}/manual/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          birth_info: {
-            birth_date: birthInfo.birth_date,
-            birth_time: birthInfo.birth_time,
-            birth_place: birthInfo.birth_place,
-            latitude: birthInfo.latitude,
-            longitude: birthInfo.longitude,
-            timezone: birthInfo.timezone,
-            gender: birthInfo.gender,
-          },
-        }),
+      const result = await getDetailByBirth('human_design', birthInfo);
+      const d = result.data as Record<string, unknown>;
+      setData({
+        type: (d.type ?? '') as string,
+        type_en: (d.type_en ?? '') as string,
+        strategy: (d.strategy ?? '') as string,
+        strategy_en: (d.strategy_en ?? '') as string,
+        authority: (d.authority ?? '') as string,
+        authority_en: (d.authority_en ?? '') as string,
+        profile: (d.profile ?? '') as string,
+        personality_gates: (d.personality_gates ?? []) as number[],
+        design_gates: (d.design_gates ?? []) as number[],
+        channels: (d.channels ?? []) as HumanDesignData['channels'],
+        defined_centers: (d.defined_centers ?? []) as string[],
+        calculation_method: d.calculation_method as string | undefined,
       });
-
-      if (!res.ok) throw new Error('Failed to fetch');
-
-      const result = await res.json();
-      const hd = result.deep_data?.human_design;
-      
-      if (hd) {
-        setData(hd);
-      } else {
-        setError('無法取得人類圖資料');
-      }
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('載入失敗，請稍後再試');
+      setError(err instanceof Error ? err.message : '載入失敗');
     } finally {
       setDataLoading(false);
     }
   }, [birthInfo]);
 
   useEffect(() => {
-    if (hasBirthInfo && birthInfo?.birth_time && !data && !dataLoading) {
+    if (hasBirthInfo && birthInfo?.birth_time && !data && !dataLoading && !error) {
       fetchData();
     }
-  }, [hasBirthInfo, birthInfo?.birth_time, data, dataLoading, fetchData]);
+  }, [hasBirthInfo, birthInfo?.birth_time, data, dataLoading, error, fetchData]);
 
   if (authLoading) {
     return <div className={styles.loading}>載入中...</div>;

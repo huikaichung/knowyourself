@@ -213,6 +213,30 @@ export interface DetailResponse {
 }
 
 /**
+ * Get-or-create per-system detail from birth_info.
+ * Idempotent: same birth_info + system always returns same data (GCS cached).
+ * Use this from dashboard pages instead of regenerating the full manual.
+ */
+export async function getDetailByBirth(
+  system: DetailSystem,
+  birthInfo: BirthInfo,
+): Promise<DetailResponse> {
+  const response = await authFetch(`${API_URL}/manual/detail/${system}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ birth_info: birthInfo }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('NEED_LOGIN');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || '載入失敗');
+  }
+
+  return response.json();
+}
+
+/**
  * Get detailed reading for a specific system (requires auth via httpOnly cookie)
  */
 export async function getManualDetail(manualId: string, system: DetailSystem): Promise<DetailResponse> {
