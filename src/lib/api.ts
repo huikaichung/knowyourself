@@ -28,7 +28,7 @@ export interface BirthInfo {
   latitude?: number;
   longitude?: number;
   timezone?: string;
-  gender?: 'male' | 'female';
+  gender?: string;  // BE accepts any string; strict literal would force casts at every call site
 }
 
 export interface GenerateManualRequest {
