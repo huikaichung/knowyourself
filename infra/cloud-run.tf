@@ -14,6 +14,8 @@ resource "google_cloud_run_v2_service" "frontend" {
           cpu    = "1"
           memory = "512Mi"
         }
+        # Throttle CPU when idle - only billed during request processing.
+        cpu_idle = true
       }
 
       env {
@@ -34,7 +36,7 @@ resource "google_cloud_run_v2_service" "frontend" {
 
     scaling {
       min_instance_count = 0
-      max_instance_count = 3
+      max_instance_count = 1
     }
 
     timeout = "30s"
