@@ -150,6 +150,27 @@ export default function BaziPage() {
         five_elements: (d.five_elements ?? {}) as Record<string, number>,
         calculation_method: d.calculation_method as string | undefined,
       });
+      // BE may already include a six-section reading; if so, surface it
+      // immediately and let the user re-generate via chat if they want.
+      const readings = d.readings as Record<string, unknown> | undefined;
+      if (readings && typeof readings === 'object') {
+        const get = (k: keyof BaziInterpretations): string => {
+          const v = readings[k];
+          return typeof v === 'string' ? v : '';
+        };
+        const fromBE: BaziInterpretations = {
+          personality: get('personality'),
+          career_wealth: get('career_wealth'),
+          fame_office: get('fame_office'),
+          marriage: get('marriage'),
+          ancestry: get('ancestry'),
+          family_children: get('family_children'),
+        };
+        // Only adopt BE readings if they actually contain content
+        if (Object.values(fromBE).some(v => v.trim().length > 0)) {
+          setInterp(fromBE);
+        }
+      }
     } catch (err) {
       console.error('Fetch error:', err);
       setError(err instanceof Error ? err.message : '載入失敗');
