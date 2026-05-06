@@ -39,7 +39,6 @@ export function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const [manualContext, setManualContext] = useState<ManualContext | null>(null);
   const [manual, setManual] = useState<UserManual | null>(null);
   const [loadingManual, setLoadingManual] = useState(false);
@@ -116,10 +115,16 @@ export function ChatPage() {
     }
 
     try {
+      // BE is stateless - send recent history so the model has context.
+      const history = messages
+        .filter(m => m.id !== WELCOME_MESSAGE.id && !m.isStreaming)
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.content }));
+
       await sendChatMessageStream(
         {
           message: text.trim(),
-          conversation_id: conversationId || undefined,
+          history,
           manual_context: manualContext || undefined,
           manual_id: manualId || undefined,
         },
@@ -135,8 +140,7 @@ export function ChatPage() {
           });
         },
         // onDone
-        (convId) => {
-          setConversationId(convId);
+        () => {
           setMessages(prev => {
             const updated = [...prev];
             const lastMsg = updated[updated.length - 1];

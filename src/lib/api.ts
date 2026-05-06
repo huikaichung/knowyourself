@@ -341,11 +341,16 @@ export interface ManualContext {
   human_design_authority?: string;
 }
 
+export interface ChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface ChatRequest {
   message: string;
   manual_id?: string;
   manual_context?: ManualContext;
-  conversation_id?: string;
+  history?: ChatTurn[];  // Recent turns for context; BE is stateless.
   stream?: boolean;
 }
 
@@ -356,7 +361,6 @@ export interface ChatMessage {
 }
 
 export interface ChatResponse {
-  conversation_id: string;
   message: ChatMessage;
 }
 
@@ -385,7 +389,7 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
 export async function sendChatMessageStream(
   request: ChatRequest,
   onChunk: (content: string) => void,
-  onDone: (conversationId: string) => void,
+  onDone: () => void,
   onError: (error: string) => void
 ): Promise<void> {
   const response = await authFetch(`${API_URL}/chat/stream`, {
@@ -425,7 +429,7 @@ export async function sendChatMessageStream(
           if (data.type === 'chunk') {
             onChunk(data.content);
           } else if (data.type === 'done') {
-            onDone(data.conversation_id);
+            onDone();
           } else if (data.type === 'error') {
             onError(data.content);
           }
@@ -435,15 +439,6 @@ export async function sendChatMessageStream(
       }
     }
   }
-}
-
-/**
- * Clear chat conversation
- */
-export async function clearChatConversation(conversationId: string): Promise<void> {
-  await authFetch(`${API_URL}/chat/${conversationId}`, {
-    method: 'DELETE',
-  });
 }
 
 /**
