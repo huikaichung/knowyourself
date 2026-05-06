@@ -46,12 +46,15 @@ export default function ZiweiPage() {
       const result = await getDetailByBirth('ziwei', birthInfo);
       const d = result.data as Record<string, unknown>;
       const chart = (d.chart ?? d) as Record<string, unknown>;
+      // BE returns ming_gong/shen_gong as objects {palace, branch, branch_index}
+      const mg = (chart.ming_gong ?? {}) as { branch?: string };
+      const sg = (chart.shen_gong ?? {}) as { branch?: string };
       setData({
         lunar_date: (chart.lunar_date ?? '') as string,
         year_pillar: (chart.year_pillar ?? '') as string,
         wu_xing_ju: (chart.wu_xing_ju ?? '') as string,
-        ming_gong_branch: (chart.ming_gong ?? chart.ming_gong_branch ?? '') as string,
-        shen_gong_branch: (chart.shen_gong ?? chart.shen_gong_branch ?? '') as string,
+        ming_gong_branch: mg.branch ?? ((chart.ming_gong_branch ?? '') as string),
+        shen_gong_branch: sg.branch ?? ((chart.shen_gong_branch ?? '') as string),
         palaces: (chart.palaces ?? []) as Palace[],
         calculation_method: chart.calculation_method as string | undefined,
       });

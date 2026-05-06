@@ -41,18 +41,34 @@ export default function HumanDesignPage() {
     setError(null);
     try {
       const result = await getDetailByBirth('human_design', birthInfo);
+      // BE wraps AI output under interpretations and returns each major field as
+      // {name, description}; flatten to the strings this page renders.
       const d = result.data as Record<string, unknown>;
+      const interp = (d.interpretations ?? d) as Record<string, unknown>;
+      const flat = (v: unknown): string => {
+        if (typeof v === 'string') return v;
+        if (v && typeof v === 'object') {
+          const o = v as { name?: string; numbers?: string };
+          return o.name ?? o.numbers ?? '';
+        }
+        return '';
+      };
+      const channelsRaw = (interp.channels ?? d.channels ?? []) as Array<Record<string, unknown>>;
       setData({
-        type: (d.type ?? '') as string,
-        type_en: (d.type_en ?? '') as string,
-        strategy: (d.strategy ?? '') as string,
-        strategy_en: (d.strategy_en ?? '') as string,
-        authority: (d.authority ?? '') as string,
-        authority_en: (d.authority_en ?? '') as string,
-        profile: (d.profile ?? '') as string,
+        type: flat(interp.type),
+        type_en: '',
+        strategy: flat(interp.strategy),
+        strategy_en: '',
+        authority: flat(interp.authority),
+        authority_en: '',
+        profile: flat(interp.profile),
         personality_gates: (d.personality_gates ?? []) as number[],
         design_gates: (d.design_gates ?? []) as number[],
-        channels: (d.channels ?? []) as HumanDesignData['channels'],
+        channels: channelsRaw.map(c => ({
+          gate1: (c.gate1 ?? 0) as number,
+          gate2: (c.gate2 ?? 0) as number,
+          name: c.name as string | undefined,
+        })),
         defined_centers: (d.defined_centers ?? []) as string[],
         calculation_method: d.calculation_method as string | undefined,
       });
