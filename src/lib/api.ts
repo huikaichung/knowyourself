@@ -367,6 +367,58 @@ export interface ChatResponse {
 /**
  * Send a chat message (non-streaming)
  */
+// === DIVINATION ===
+
+export interface TarotCardInterpretInput {
+  name: string;
+  position?: string;
+  reversed?: boolean;
+}
+
+export interface TarotInterpretation {
+  interpretation: string;
+  advice: string;
+}
+
+export async function interpretTarot(
+  question: string,
+  cards: TarotCardInterpretInput[],
+): Promise<TarotInterpretation> {
+  const response = await authFetch(`${API_URL}/divination/tarot`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, cards }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || '解讀失敗');
+  }
+  return response.json();
+}
+
+export interface MeihuaResult {
+  derivation: Record<string, unknown>;
+  primary_hexagram: { number: number; name: string; meaning: string; upper_trigram: Record<string, unknown>; lower_trigram: Record<string, unknown> };
+  mutual_hexagram: { number: number; name: string; meaning?: string };
+  transformed_hexagram: { number: number; name: string; meaning?: string };
+  changing_line: { position: number; location: string; description: string };
+  interpretation: string;
+  advice: string;
+}
+
+export async function divineMeihua(question: string): Promise<MeihuaResult> {
+  const response = await authFetch(`${API_URL}/divination/meihua`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || '起卦失敗');
+  }
+  return response.json();
+}
+
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
   const response = await authFetch(`${API_URL}/chat`, {
     method: 'POST',

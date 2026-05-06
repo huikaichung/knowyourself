@@ -3,18 +3,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthContext';
 import Link from 'next/link';
+import { divineMeihua, type MeihuaResult } from '@/lib/api';
 import styles from '../divination.module.css';
-
-interface MeihuaResult {
-  upper_gua: { name: string; symbol: string; element: string };
-  lower_gua: { name: string; symbol: string; element: string };
-  ben_gua: { name: string; number: number };
-  hu_gua: { name: string; number: number };
-  bian_gua: { name: string; number: number };
-  yao_ci: string;
-  interpretation: string;
-  timestamp: string;
-}
 
 export default function MeihuaPage() {
   const { user } = useAuth();
@@ -22,37 +12,36 @@ export default function MeihuaPage() {
   const [result, setResult] = useState<MeihuaResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDivine = async () => {
     if (!question.trim()) return;
 
     setAnimating(true);
     setLoading(true);
+    setError(null);
 
-    // 動畫效果
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setAnimating(false);
-
-    // TODO: 實際 API 呼叫
-    // 暫時用模擬結果
-    const mockResult: MeihuaResult = {
-      upper_gua: { name: '乾', symbol: '☰', element: '金' },
-      lower_gua: { name: '坤', symbol: '☷', element: '土' },
-      ben_gua: { name: '天地否', number: 12 },
-      hu_gua: { name: '風山漸', number: 53 },
-      bian_gua: { name: '火地晉', number: 35 },
-      yao_ci: '初六，拔茅茹，以其彙。貞吉，亨。',
-      interpretation: '此卦顯示目前處於閉塞不通之時，但若能堅守正道，終將轉運通達。建議暫時蟄伏等待時機，不宜急進。',
-      timestamp: new Date().toISOString(),
-    };
-
-    setResult(mockResult);
-    setLoading(false);
+    try {
+      // Run the casting animation in parallel with the BE call so the user
+      // sees something even if the AI takes a few seconds.
+      const [data] = await Promise.all([
+        divineMeihua(question.trim()),
+        new Promise(resolve => setTimeout(resolve, 1500)),
+      ]);
+      setAnimating(false);
+      setResult(data);
+    } catch (err) {
+      setAnimating(false);
+      setError(err instanceof Error ? err.message : '起卦失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetDivination = () => {
     setResult(null);
     setQuestion('');
+    setError(null);
   };
 
   if (!user) return null;
@@ -79,7 +68,7 @@ export default function MeihuaPage() {
             placeholder="例如：這份工作適合我嗎？"
             rows={3}
           />
-          
+
           <button
             className={`${styles.divineButton} ${animating ? styles.animating : ''}`}
             onClick={handleDivine}
@@ -88,11 +77,13 @@ export default function MeihuaPage() {
             {animating ? (
               <span className={styles.yinyang}>☯</span>
             ) : loading ? (
-              '起卦中...'
+              'AI 解卦中...'
             ) : (
               '時間起卦'
             )}
           </button>
+
+          {error && <p className={styles.errorText}>{error}</p>}
 
           <p className={styles.hint}>
             梅花易數以當前時間為數，結合問事心念起卦
@@ -103,38 +94,48 @@ export default function MeihuaPage() {
           {/* 卦象展示 */}
           <div className={styles.guaDisplay}>
             <div className={styles.guaSymbol}>
-              <span className={styles.upperGua}>{result.upper_gua.symbol}</span>
-              <span className={styles.lowerGua}>{result.lower_gua.symbol}</span>
+              <span className={styles.upperGua}>
+                {(result.primary_hexagram.upper_trigram as { symbol?: string }).symbol ?? ''}
+              </span>
+              <span className={styles.lowerGua}>
+                {(result.primary_hexagram.lower_trigram as { symbol?: string }).symbol ?? ''}
+              </span>
             </div>
-            <div className={styles.guaName}>{result.ben_gua.name}</div>
+            <div className={styles.guaName}>{result.primary_hexagram.name}</div>
           </div>
 
           {/* 三卦 */}
           <div className={styles.threeGua}>
             <div className={styles.guaCard}>
               <span className={styles.guaCardLabel}>本卦</span>
-              <span className={styles.guaCardName}>{result.ben_gua.name}</span>
+              <span className={styles.guaCardName}>{result.primary_hexagram.name}</span>
             </div>
             <div className={styles.guaCard}>
               <span className={styles.guaCardLabel}>互卦</span>
-              <span className={styles.guaCardName}>{result.hu_gua.name}</span>
+              <span className={styles.guaCardName}>{result.mutual_hexagram.name}</span>
             </div>
             <div className={styles.guaCard}>
               <span className={styles.guaCardLabel}>變卦</span>
-              <span className={styles.guaCardName}>{result.bian_gua.name}</span>
+              <span className={styles.guaCardName}>{result.transformed_hexagram.name}</span>
             </div>
           </div>
 
-          {/* 爻辭 */}
+          {/* 動爻 */}
           <div className={styles.yaoCi}>
-            <h3>爻辭</h3>
-            <p>{result.yao_ci}</p>
+            <h3>動爻</h3>
+            <p>{result.changing_line.description}（{result.changing_line.location}）</p>
           </div>
 
-          {/* 解讀 */}
+          {/* AI 解讀 */}
           <div className={styles.interpretation}>
-            <h3>解讀</h3>
+            <h3>AI 解卦</h3>
             <p>{result.interpretation}</p>
+            {result.advice && (
+              <>
+                <h3 style={{ marginTop: '1rem' }}>建議</h3>
+                <p>{result.advice}</p>
+              </>
+            )}
           </div>
 
           {/* 問題回顧 */}

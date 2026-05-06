@@ -108,6 +108,11 @@ const TAROT_CARDS: TarotCard[] = [
   { name: "錢幣國王", description: "富有、商業頭腦、安全穩定。", image: "kingofpentacles.jpeg" },
 ];
 
+interface AIReading {
+  interpretation: string;
+  advice: string;
+}
+
 export default function TarotPage() {
   const { user } = useAuth();
   const [question, setQuestion] = useState('');
@@ -115,6 +120,9 @@ export default function TarotPage() {
   const [drawnCards, setDrawnCards] = useState<DrawnCard[]>([]);
   const [spreadType, setSpreadType] = useState<'single' | 'three'>('single');
   const [currentCardIndex, setCurrentCardIndex] = useState(-1);
+  const [aiReading, setAiReading] = useState<AIReading | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const positions = spreadType === 'single' 
     ? ['指引']
@@ -126,6 +134,8 @@ export default function TarotPage() {
     setPhase('shuffling');
     setDrawnCards([]);
     setCurrentCardIndex(-1);
+    setAiReading(null);
+    setAiError(null);
 
     // Shuffle animation
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -140,7 +150,7 @@ export default function TarotPage() {
     for (let i = 0; i < cardCount; i++) {
       setCurrentCardIndex(i);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       drawn.push({
         card: shuffled[i],
         reversed: Math.random() > 0.7, // 30% 逆位
@@ -151,6 +161,21 @@ export default function TarotPage() {
 
     await new Promise(resolve => setTimeout(resolve, 500));
     setPhase('result');
+
+    // Ask AI to interpret the spread now that the cards are revealed.
+    setAiLoading(true);
+    try {
+      const { interpretTarot } = await import('@/lib/api');
+      const reading = await interpretTarot(
+        question.trim(),
+        drawn.map(d => ({ name: d.card.name, position: d.position, reversed: d.reversed })),
+      );
+      setAiReading(reading);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI 解讀失敗');
+    } finally {
+      setAiLoading(false);
+    }
   }, [question, spreadType, positions]);
 
   const resetReading = () => {
@@ -158,6 +183,8 @@ export default function TarotPage() {
     setDrawnCards([]);
     setQuestion('');
     setCurrentCardIndex(-1);
+    setAiReading(null);
+    setAiError(null);
   };
 
   if (!user) return null;
@@ -273,6 +300,24 @@ export default function TarotPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* AI overall reading of the spread against the question */}
+          <div className={styles.interpretation}>
+            <h3>AI 整體解讀</h3>
+            {aiLoading && <p style={{ opacity: 0.7 }}>解讀中…</p>}
+            {aiError && <p style={{ color: '#f87171' }}>{aiError}</p>}
+            {aiReading && (
+              <>
+                <p>{aiReading.interpretation}</p>
+                {aiReading.advice && (
+                  <>
+                    <h4 style={{ marginTop: '1rem' }}>建議</h4>
+                    <p>{aiReading.advice}</p>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           <button className={styles.resetButton} onClick={resetReading}>
