@@ -344,7 +344,7 @@ function WesternRender({ data }: { data: any }) {
       planets={planets} 
       aspects={aspects}
       stelliums={data.stelliums}
-      chartPattern={data.chart_pattern || data.patterns?.map(p => p.name || p.name_cn).filter(Boolean).join('、')}
+      chartPattern={data.chart_pattern || data.patterns?.map((p: { name?: string; name_cn?: string }) => p.name || p.name_cn).filter(Boolean).join('、')}
       dominantElement={data.dominant_element}
       summary={interpretations.general_overview || data.summary}
     />
