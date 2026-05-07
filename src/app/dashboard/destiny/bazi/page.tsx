@@ -14,6 +14,23 @@ interface Pillar {
   nayin: string;
 }
 
+interface TenGod {
+  god: string;          // e.g. 偏財
+  stem_or_branch: string;
+  pillar: string;       // 年柱 / 月柱 / 日柱 / 時柱
+  position: string;     // 天干 / 地支X藏干
+}
+
+interface DaYun {
+  index: number;
+  age_range: string;
+  start_age: number;
+  end_age: number;
+  stem_branch: string;
+  stem: string;
+  branch: string;
+}
+
 interface BaziData {
   pillars: {
     year: Pillar;
@@ -25,8 +42,19 @@ interface BaziData {
   day_master_strength: string;
   useful_god: string;
   useful_god_reasoning: string;
+  unfavorable_elements: string[];
   five_elements: Record<string, number>;
+  ten_gods: TenGod[];
+  da_yun: DaYun[];
+  lunar_date?: string;
+  solar_date?: string;
+  birth_hour?: string;
   calculation_method?: string;
+  shen_sha?: Record<string, string[]>; // pillar key -> list of names
+  twelve_stages?: Record<string, string>; // pillar key -> stage name
+  tai_yuan?: string;
+  ming_gong?: string;
+  shen_gong?: string;
 }
 
 // Phase 1.5 fallback: ask the chat LLM for six interpretation sections from
@@ -141,14 +169,26 @@ export default function BaziPage() {
       const d = result.data as Record<string, unknown>;
       const dm = (d.day_master ?? {}) as { stem?: string; element?: string; strength?: string };
       const ug = (d.useful_god ?? {}) as { element?: string; reasoning?: string };
+      const unfav = (d.unfavorable ?? {}) as { elements?: string[] };
       setData({
         pillars: (d.pillars ?? {}) as BaziData['pillars'],
         day_master: `${dm.stem ?? ''}${dm.element ?? ''}`,
         day_master_strength: dm.strength ?? '',
         useful_god: ug.element ?? '',
         useful_god_reasoning: ug.reasoning ?? '',
+        unfavorable_elements: unfav.elements ?? [],
         five_elements: (d.five_elements ?? {}) as Record<string, number>,
+        ten_gods: (d.ten_gods ?? []) as TenGod[],
+        da_yun: (d.da_yun ?? []) as DaYun[],
+        lunar_date: d.lunar_date as string | undefined,
+        solar_date: d.solar_date as string | undefined,
+        birth_hour: d.birth_hour as string | undefined,
         calculation_method: d.calculation_method as string | undefined,
+        shen_sha: d.shen_sha as Record<string, string[]> | undefined,
+        twelve_stages: d.twelve_stages as Record<string, string> | undefined,
+        tai_yuan: d.tai_yuan as string | undefined,
+        ming_gong: d.ming_gong as string | undefined,
+        shen_gong: d.shen_gong as string | undefined,
       });
       // BE may already include a six-section reading; if so, surface it
       // immediately and let the user re-generate via chat if they want.
@@ -263,25 +303,116 @@ export default function BaziPage() {
         </div>
       ) : data ? (
         <>
-          {/* 四柱 */}
-          <div className={styles.grid}>
-            {pillarKeys.map((key, i) => {
-              const pillar = data.pillars[key];
-              return (
-                <div key={key} className={styles.card}>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem' }}>
-                    {pillarNames[i]}
+          {/* 命盤詳細表 */}
+          {(() => {
+            // Group ten gods by pillar so each column can show its main star.
+            const pillarLabel: Record<typeof pillarKeys[number], string> = {
+              year: '年柱', month: '月柱', day: '日柱', hour: '時柱',
+            };
+            const stemGodByPillar: Record<string, string> = {};
+            const hiddenGodsByPillar: Record<string, Array<{ stem: string; god: string }>> = {};
+            for (const tg of data.ten_gods ?? []) {
+              const colKey = (Object.entries(pillarLabel).find(([, v]) => v === tg.pillar)?.[0]) as
+                | typeof pillarKeys[number]
+                | undefined;
+              if (!colKey) continue;
+              if (tg.position === '天干') {
+                stemGodByPillar[colKey] = tg.god;
+              } else {
+                if (!hiddenGodsByPillar[colKey]) hiddenGodsByPillar[colKey] = [];
+                hiddenGodsByPillar[colKey].push({ stem: tg.stem_or_branch, god: tg.god });
+              }
+            }
+
+            const rows: Array<{ label: string; render: (key: typeof pillarKeys[number]) => React.ReactNode; show: boolean }> = [
+              { label: '主星', render: k => stemGodByPillar[k] ?? '—', show: Object.keys(stemGodByPillar).length > 0 },
+              { label: '天干', render: k => <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>{data.pillars[k].stem}</span>, show: true },
+              { label: '地支', render: k => <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>{data.pillars[k].branch}</span>, show: true },
+              { label: '藏干', render: k => {
+                const hidden = data.pillars[k].hidden_stems ?? [];
+                const gods = hiddenGodsByPillar[k] ?? [];
+                const godBy = Object.fromEntries(gods.map(g => [g.stem, g.god]));
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.85rem' }}>
+                    {hidden.length === 0 ? '—' : hidden.map(s => (
+                      <span key={s}>{s}{godBy[s] ? ` (${godBy[s]})` : ''}</span>
+                    ))}
                   </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-                    {pillar.stem}{pillar.branch}
+                );
+              }, show: true },
+              { label: '十二長生', render: k => data.twelve_stages?.[k] ?? '—', show: !!data.twelve_stages },
+              { label: '神煞', render: k => {
+                const ss = data.shen_sha?.[k] ?? [];
+                return ss.length === 0 ? '—' : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.8rem' }}>
+                    {ss.map(s => <span key={s}>{s}</span>)}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
-                    {pillar.nayin}
-                  </div>
+                );
+              }, show: !!data.shen_sha },
+              { label: '納音', render: k => data.pillars[k].nayin, show: true },
+            ];
+
+            return (
+              <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}></th>
+                      {pillarKeys.map((k, i) => (
+                        <th key={k} style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+                          {pillarNames[i]}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.filter(r => r.show).map(r => (
+                      <tr key={r.label} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
+                          {r.label}
+                        </td>
+                        {pillarKeys.map(k => (
+                          <td key={k} style={{ padding: '0.6rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            {r.render(k)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* 命格資訊（胎元 / 命宮 / 身宮）*/}
+          {(data.tai_yuan || data.ming_gong || data.shen_gong || data.lunar_date) && (
+            <div style={{ marginTop: '0.5rem', padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
+              {data.lunar_date && (
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>農曆</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>{data.lunar_date}</div>
                 </div>
-              );
-            })}
-          </div>
+              )}
+              {data.tai_yuan && (
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>胎元</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>{data.tai_yuan}</div>
+                </div>
+              )}
+              {data.ming_gong && (
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>命宮</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>{data.ming_gong}</div>
+                </div>
+              )}
+              {data.shen_gong && (
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>身宮</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>{data.shen_gong}</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 日主分析 */}
           <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
@@ -324,7 +455,41 @@ export default function BaziPage() {
                 </div>
               ))}
             </div>
+            {data.unfavorable_elements.length > 0 && (
+              <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+                忌神：{data.unfavorable_elements.join('、')}
+              </p>
+            )}
           </div>
+
+          {/* 大運時間軸 */}
+          {data.da_yun.length > 0 && (
+            <div style={{ marginTop: '2rem' }}>
+              <h3 style={{ marginBottom: '1rem' }}>大運</h3>
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', minWidth: 'min-content' }}>
+                  {data.da_yun.map(c => (
+                    <div key={c.index} style={{
+                      flex: '0 0 auto',
+                      minWidth: '90px',
+                      padding: '0.75rem',
+                      background: 'rgba(255,255,255,0.05)',
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                        {c.start_age}–{c.end_age} 歲
+                      </div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 600, marginTop: '0.25rem' }}>
+                        {c.stem_branch}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 詳細解讀（六段，可摺疊）*/}
           <div style={{ marginTop: '2.5rem' }}>
